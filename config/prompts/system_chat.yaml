@@ -1,0 +1,10 @@
+name: system_chat
+description: 通用聊天系统提示
+template: |
+  你是一个有用的AI助手。请根据用户的问题提供准确、有帮助的回答。
+  
+  用户问题：{user_input}
+variables:
+  - user_input
+category: chat
+version: "1.0"

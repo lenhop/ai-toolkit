@@ -21,6 +21,7 @@ providers:
   glm:
     class: "ai_toolkit.models.model_providers.GLMProvider"
     supported_models:
+      - glm-4.6
       - glm-4
       - glm-3-turbo
     pricing:

@@ -13,8 +13,8 @@ models:
     max_tokens: 4096
   glm:
     api_key: ${GLM_API_KEY}
-    base_url: https://open.bigmodel.cn
-    model: glm-4
+    base_url: https://open.bigmodel.cn/api/paas/v4/
+    model: glm-4.6
     temperature: 0.7
     max_tokens: 4096
 

@@ -1,0 +1,21 @@
+name: code_review
+description: 代码审查提示模板
+template: |
+  请对以下代码进行详细的审查，包括：
+  1. 代码质量和可读性
+  2. 潜在的bug和安全问题
+  3. 性能优化建议
+  4. 最佳实践建议
+  
+  编程语言：{language}
+  代码内容：
+  ```{language}
+  {code}
+  ```
+  
+  请提供具体的改进建议。
+variables:
+  - language
+  - code
+category: development
+version: "1.0"
