@@ -1,0 +1,33 @@
+models:
+  deepseek:
+    api_key: ${DEEPSEEK_API_KEY}
+    base_url: https://api.deepseek.com
+    model: deepseek-chat
+    temperature: 0.7
+    max_tokens: 4096
+  qwen:
+    api_key: ${QWEN_API_KEY}
+    base_url: https://dashscope.aliyuncs.com
+    model: qwen-turbo
+    temperature: 0.7
+    max_tokens: 4096
+  glm:
+    api_key: ${GLM_API_KEY}
+    base_url: https://open.bigmodel.cn
+    model: glm-4
+    temperature: 0.7
+    max_tokens: 4096
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: logs/ai_toolkit.log
+
+retry:
+  max_attempts: 3
+  backoff_factor: 2
+  max_delay: 60
+
+token_limits:
+  default_max_tokens: 4096
+  warning_threshold: 3500

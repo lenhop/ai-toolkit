@@ -1,0 +1,35 @@
+providers:
+  deepseek:
+    class: "ai_toolkit.models.model_providers.DeepSeekProvider"
+    supported_models:
+      - deepseek-chat
+      - deepseek-coder
+    pricing:
+      input_token_price: 0.0014  # per 1K tokens
+      output_token_price: 0.0028  # per 1K tokens
+    
+  qwen:
+    class: "ai_toolkit.models.model_providers.QwenProvider"
+    supported_models:
+      - qwen-turbo
+      - qwen-plus
+      - qwen-max
+    pricing:
+      input_token_price: 0.0008
+      output_token_price: 0.002
+    
+  glm:
+    class: "ai_toolkit.models.model_providers.GLMProvider"
+    supported_models:
+      - glm-4
+      - glm-3-turbo
+    pricing:
+      input_token_price: 0.001
+      output_token_price: 0.002
+
+default_settings:
+  temperature: 0.7
+  max_tokens: 4096
+  top_p: 0.9
+  frequency_penalty: 0.0
+  presence_penalty: 0.0
