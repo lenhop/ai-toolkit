@@ -3,6 +3,65 @@ Custom exception types for AI toolkit operations.
 
 This module defines a hierarchy of exceptions specific to AI operations,
 providing detailed error information and context for better debugging.
+
+Classes:
+    AIException: Base exception for all AI toolkit errors
+        - Root exception class for the toolkit
+        - Includes error context and metadata
+        
+        Methods:
+            __init__(message, details, original_error): Initialize exception
+            to_dict(): Convert exception to dictionary
+            __str__(): String representation
+    
+    ModelError: Model-related errors
+        - Errors during model creation or invocation
+        - Includes model name and provider information
+        
+        Methods:
+            __init__(message, model_name, provider, details): Initialize error
+    
+    ParseError: Output parsing errors
+        - Errors during output parsing
+        - Includes raw output and expected format
+        
+        Methods:
+            __init__(message, raw_output, expected_format, details): Initialize error
+    
+    APIError: API communication errors
+        - Errors during API calls
+        - Includes status code and response
+        
+        Methods:
+            __init__(message, status_code, response, details): Initialize error
+    
+    RateLimitError: Rate limiting errors
+        - Errors when rate limits are exceeded
+        - Includes retry information
+        
+        Methods:
+            __init__(message, retry_after, details): Initialize error
+    
+    TimeoutError: Timeout errors
+        - Errors when operations timeout
+        - Includes timeout duration
+        
+        Methods:
+            __init__(message, timeout, details): Initialize error
+    
+    AuthenticationError: Authentication errors
+        - Errors related to API authentication
+        - Includes authentication method
+        
+        Methods:
+            __init__(message, auth_method, details): Initialize error
+    
+    ValidationError: Configuration validation errors
+        - Errors during configuration validation
+        - Includes validation details
+        
+        Methods:
+            __init__(message, field, value, details): Initialize error
 """
 
 from typing import Any, Dict, Optional, List

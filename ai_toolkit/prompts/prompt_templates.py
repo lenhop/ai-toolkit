@@ -1,5 +1,53 @@
 """
 Prompt template classes for different types of prompts.
+
+This module provides various prompt template classes for managing and rendering
+prompts with different structures and use cases.
+
+Classes:
+    BasePromptTemplate: Abstract base class for all prompt templates
+        - Defines interface for prompt templates
+        - Handles variable validation and rendering
+        
+        Methods:
+            __init__(template, variables, name, description): Initialize template
+            render(**kwargs): Render template with variables (abstract)
+            validate_variables(**kwargs): Validate provided variables
+            get_variables(): Get list of required variables
+            to_dict(): Convert template to dictionary
+            from_dict(data): Create template from dictionary (class method)
+    
+    SimplePromptTemplate: Simple string-based prompt template
+        - Basic template with variable substitution
+        - Uses Python string formatting
+        
+        Methods:
+            render(**kwargs): Render template with string formatting
+    
+    ChatPromptTemplate: Chat-based prompt template
+        - Supports multi-turn conversations
+        - Compatible with LangChain ChatPromptTemplate
+        
+        Methods:
+            render(**kwargs): Render chat template
+            add_message(role, content): Add message to template
+            to_langchain(): Convert to LangChain ChatPromptTemplate
+    
+    SystemPromptTemplate: System message prompt template
+        - Specialized for system instructions
+        - Prepends system role automatically
+        
+        Methods:
+            render(**kwargs): Render system prompt
+    
+    FewShotPromptTemplate: Few-shot learning prompt template
+        - Includes examples for few-shot learning
+        - Formats examples with template
+        
+        Methods:
+            render(**kwargs): Render few-shot prompt with examples
+            add_example(input, output): Add example to template
+            set_examples(examples): Set all examples at once
 """
 
 from abc import ABC, abstractmethod

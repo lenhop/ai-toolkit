@@ -3,6 +3,67 @@ Configuration validator for validating configuration values.
 
 This module provides functionality to validate configuration files,
 API keys, and other configuration parameters.
+
+Classes:
+    ValidationRule: Base class for validation rules
+        - Defines interface for validation rules
+        
+        Methods:
+            __init__(error_message): Initialize rule
+            validate(value): Validate value (abstract)
+            get_error_message(key, value): Get error message
+    
+    RequiredRule: Rule to check if value is required
+        
+        Methods:
+            validate(value): Check if value is not None or empty
+    
+    TypeRule: Rule to check value type
+        
+        Methods:
+            __init__(expected_type, error_message): Initialize with expected type
+            validate(value): Check if value matches type
+    
+    RangeRule: Rule to check numeric value range
+        
+        Methods:
+            __init__(min_value, max_value, error_message): Initialize with range
+            validate(value): Check if value is within range
+    
+    PatternRule: Rule to check string pattern
+        
+        Methods:
+            __init__(pattern, error_message): Initialize with regex pattern
+            validate(value): Check if value matches pattern
+    
+    ChoiceRule: Rule to check if value is in allowed choices
+        
+        Methods:
+            __init__(choices, error_message): Initialize with choices
+            validate(value): Check if value is in choices
+    
+    CustomRule: Rule with custom validation function
+        
+        Methods:
+            __init__(validator, error_message): Initialize with validator function
+            validate(value): Check using custom validator
+    
+    ConfigValidator: Validator for configuration values
+        - Validates configurations against rules
+        - Provides specialized validation methods
+        
+        Methods:
+            __init__(logger): Initialize validator
+            add_rule(key, rule): Add validation rule
+            add_rules(key, rules): Add multiple rules
+            validate(config): Validate configuration
+            get_errors(): Get validation errors
+            clear_rules(): Clear all rules
+            validate_model_config(config): Validate model configuration
+            validate_api_keys(api_keys): Validate API keys
+            validate_file_path(path, must_exist): Validate file path
+            validate_url(url): Validate URL format
+            validate_pydantic_model(data, model_class): Validate against Pydantic model
 """
 
 import os

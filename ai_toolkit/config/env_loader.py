@@ -3,6 +3,32 @@ Environment variable loader for loading configuration from environment.
 
 This module provides functionality to load configuration from environment
 variables with type conversion and validation.
+
+Classes:
+    EnvLoader: Loader for environment variables
+        - Loads from .env files using python-dotenv
+        - Provides type-safe variable access
+        - Supports API key retrieval with multiple naming conventions
+        - Includes batch loading and validation
+        
+        Methods:
+            __init__(env_file, auto_load, override, logger): Initialize loader
+            load_env_file(env_file, override): Load .env file
+            get(key, default, cast, required): Get environment variable with type casting
+            get_str(key, default, required): Get string variable
+            get_int(key, default, required): Get integer variable
+            get_float(key, default, required): Get float variable
+            get_bool(key, default, required): Get boolean variable
+            get_list(key, default, required): Get list variable
+            get_api_key(provider, key_name, required): Get API key for provider
+            set(key, value): Set environment variable
+            delete(key): Delete environment variable
+            has(key): Check if variable exists
+            get_all(prefix): Get all environment variables
+            load_from_env(mapping, required): Load multiple values with mapping
+            create_env_file(variables, env_file, overwrite): Create .env file
+            validate_required_vars(required_vars): Validate required variables
+            get_with_fallback(keys, default, cast): Get variable with fallback keys
 """
 
 import os

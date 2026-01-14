@@ -1,5 +1,42 @@
 """
 Model configuration data classes using Pydantic.
+
+This module provides Pydantic-based configuration classes for AI models,
+including validation, environment variable loading, and provider configurations.
+
+Classes:
+    ModelConfig: Model configuration data class
+        - Validates API keys, URLs, and model parameters
+        - Supports temperature, max_tokens, penalties, timeouts
+        - Includes provider-specific extra parameters
+        
+        Fields:
+            api_key: API key for the model provider
+            base_url: Base URL for the API endpoint
+            model: Model name/identifier
+            temperature: Sampling temperature (0.0-2.0)
+            max_tokens: Maximum tokens in response
+            top_p: Top-p sampling parameter (0.0-1.0)
+            frequency_penalty: Frequency penalty (-2.0-2.0)
+            presence_penalty: Presence penalty (-2.0-2.0)
+            timeout: Request timeout in seconds
+            max_retries: Maximum retry attempts
+            extra_params: Additional provider-specific parameters
+    
+    ProviderConfig: Provider configuration data class
+        - Defines provider name and supported models
+        - Includes default settings and pricing information
+        
+        Fields:
+            name: Provider name
+            supported_models: List of supported model names
+            default_model: Default model to use
+            pricing: Pricing information dictionary
+            features: Supported features list
+
+Functions:
+    load_config_from_env(provider_name): Load configuration from environment variables
+    validate_config(config): Validate model configuration
 """
 
 from typing import Optional, Dict, Any, List

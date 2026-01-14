@@ -4,6 +4,24 @@ Unified error handler for AI toolkit operations.
 This module provides centralized error handling capabilities including
 error classification, logging, recovery strategies, and user-friendly
 error reporting.
+
+Classes:
+    ErrorHandler: Unified error handler for AI operations
+        - Classifies and handles different error types
+        - Provides error recovery strategies
+        - Logs errors with appropriate severity
+        - Generates user-friendly error messages
+        
+        Methods:
+            __init__(logger, enable_recovery): Initialize error handler
+            handle_error(error, context): Handle and classify error
+            add_handler(error_type, handler_func): Register custom error handler
+            remove_handler(error_type): Remove error handler
+            set_recovery_strategy(error_type, strategy): Set recovery strategy
+            get_error_stats(): Get error statistics
+            clear_stats(): Clear error statistics
+            should_retry(error): Determine if error is retryable
+            get_retry_delay(error, attempt): Calculate retry delay
 """
 
 import logging

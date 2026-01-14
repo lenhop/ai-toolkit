@@ -3,6 +3,22 @@ Stream Handler for processing streaming output from AI models.
 
 This module provides the StreamHandler class for handling, formatting,
 and aggregating streaming output chunks from AI models.
+
+Classes:
+    StreamHandler: Handler for streaming output processing
+        - Manages streaming sessions and chunks
+        - Formats and aggregates streaming data
+        - Tracks streaming statistics
+        
+        Methods:
+            __init__(session_id, buffer_size): Initialize stream handler
+            handle_stream(chunk): Process single streaming chunk
+            format_chunk(chunk): Format chunk for display
+            aggregate_stream(): Get aggregated stream content
+            get_session_info(): Get session information
+            clear_buffer(): Clear stream buffer
+            is_complete(): Check if stream is complete
+            get_statistics(): Get streaming statistics
 """
 
 import time

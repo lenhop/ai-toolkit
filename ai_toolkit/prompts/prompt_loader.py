@@ -1,5 +1,23 @@
 """
 Prompt loader for loading templates from files and directories.
+
+This module provides functionality to load prompt templates from various sources
+including files, directories, and different formats (YAML, JSON, text).
+
+Classes:
+    PromptLoader: Loader for prompt templates from files
+        - Loads templates from YAML, JSON, and text files
+        - Supports batch loading from directories
+        - Validates template format and structure
+        
+        Methods:
+            __init__(base_path): Initialize loader with base path
+            load_from_file(file_path): Load single template from file
+            load_from_dir(dir_path, pattern, recursive): Load templates from directory
+            validate_template(template_data): Validate template structure
+            save_template(template, file_path): Save template to file
+            list_templates(dir_path): List available templates in directory
+            get_template_info(file_path): Get template metadata
 """
 
 import os

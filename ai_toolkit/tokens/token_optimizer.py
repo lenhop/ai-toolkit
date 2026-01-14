@@ -3,6 +3,46 @@ Token optimizer for reducing token usage and costs.
 
 This module provides functionality to optimize token usage through
 text compression, message summarization, and intelligent truncation.
+
+Classes:
+    OptimizationStrategy: Enum for optimization strategies
+        - TRUNCATE_START: Truncate from start
+        - TRUNCATE_END: Truncate from end
+        - TRUNCATE_MIDDLE: Truncate from middle
+        - SUMMARIZE: Summarize content
+        - COMPRESS: Compress by removing redundancy
+        - REMOVE_REDUNDANCY: Remove redundant content
+    
+    OptimizationResult: Data class for optimization results
+        - Tracks original and optimized text/tokens
+        
+        Fields:
+            original_text: Original text
+            optimized_text: Optimized text
+            original_tokens: Original token count
+            optimized_tokens: Optimized token count
+            tokens_saved: Number of tokens saved
+            compression_ratio: Compression ratio
+            strategy_used: Strategy used
+        
+        Properties:
+            savings_percentage: Percentage of tokens saved
+    
+    TokenOptimizer: Optimizer for reducing token usage
+        - Compresses text by removing redundancy
+        - Truncates text with multiple strategies
+        - Summarizes content to reduce tokens
+        - Optimizes message lists
+        
+        Methods:
+            __init__(token_counter, logger): Initialize optimizer
+            truncate_text(text, max_tokens, strategy, preserve_sentences): Truncate text
+            compress_text(text): Compress text by removing redundancy
+            optimize_messages(messages, max_tokens, preserve_system_message, preserve_last_messages): Optimize message list
+            summarize_context(text, target_tokens, summarizer): Summarize text
+            optimize_for_cost(text, max_cost, model): Optimize for cost limit
+            batch_optimize(texts, max_tokens_per_text, strategy): Optimize multiple texts
+            get_optimization_stats(results): Get optimization statistics
 """
 
 import re

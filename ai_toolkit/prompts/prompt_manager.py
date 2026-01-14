@@ -1,5 +1,27 @@
 """
 Prompt manager for centralized prompt template management.
+
+This module provides centralized management for prompt templates including
+loading, caching, rendering, and organizing templates.
+
+Classes:
+    PromptManager: Central manager for prompt templates
+        - Manages template lifecycle and caching
+        - Integrates with PromptLoader for file operations
+        - Provides template rendering and variable management
+        
+        Methods:
+            __init__(template_dir): Initialize manager with template directory
+            load_template(name, file_path): Load template by name
+            get_template(name): Get cached template by name
+            render_template(name, **kwargs): Render template with variables
+            save_template(name, template, file_path): Save template to file
+            list_templates(): List all loaded templates
+            remove_template(name): Remove template from cache
+            clear_cache(): Clear all cached templates
+            template_exists(name): Check if template exists
+            get_template_info(name): Get template metadata
+            reload_template(name): Reload template from file
 """
 
 from typing import Dict, List, Any, Optional, Union

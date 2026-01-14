@@ -3,6 +3,43 @@ Stream Callback for handling streaming output from LangChain models.
 
 This module provides callback handlers for processing streaming output
 from LangChain models in real-time.
+
+Classes:
+    StreamCallback: Base callback handler for streaming
+        - Integrates with LangChain's callback system
+        - Handles token-by-token streaming
+        - Provides real-time output processing
+        
+        Methods:
+            __init__(on_token, on_complete, on_error): Initialize callback
+            on_llm_new_token(token, **kwargs): Handle new token
+            on_llm_end(response, **kwargs): Handle stream completion
+            on_llm_error(error, **kwargs): Handle streaming errors
+            get_accumulated_text(): Get accumulated output
+            reset(): Reset callback state
+    
+    BufferedStreamCallback: Buffered streaming callback
+        - Buffers tokens before processing
+        - Reduces callback frequency
+        - Improves performance for high-frequency streams
+        
+        Methods:
+            __init__(buffer_size, flush_callback): Initialize buffered callback
+            on_llm_new_token(token, **kwargs): Buffer new token
+            flush_buffer(): Flush buffered tokens
+            get_buffer_size(): Get current buffer size
+    
+    MultiStreamCallback: Multi-stream callback handler
+        - Handles multiple concurrent streams
+        - Routes tokens to appropriate handlers
+        - Manages stream lifecycle
+        
+        Methods:
+            __init__(): Initialize multi-stream callback
+            add_stream(stream_id, callback): Add stream handler
+            remove_stream(stream_id): Remove stream handler
+            on_llm_new_token(token, **kwargs): Route token to streams
+            get_active_streams(): Get list of active streams
 """
 
 import time

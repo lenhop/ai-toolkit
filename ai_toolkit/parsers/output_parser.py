@@ -1,5 +1,69 @@
 """
 Output parser classes for different types of structured outputs.
+
+This module provides various parser classes for converting AI model outputs
+into structured data formats including JSON, Pydantic models, lists, and more.
+
+Classes:
+    BaseOutputParser: Abstract base class for output parsers
+        - Defines interface for all parsers
+        - Provides LangChain compatibility
+        
+        Methods:
+            __init__(**kwargs): Initialize parser with configuration
+            parse(text): Parse output text into structured data (abstract)
+            get_format_instructions(): Get format instructions (abstract)
+            to_langchain(): Convert to LangChain output parser
+    
+    StrOutputParser: String output parser
+        - Parses output as plain string
+        - Optionally strips whitespace
+        
+        Methods:
+            parse(text): Return text as string
+            get_format_instructions(): Get string format instructions
+            to_langchain(): Convert to LangChain StrOutputParser
+    
+    JsonOutputParser: JSON output parser
+        - Parses JSON formatted output
+        - Validates JSON structure
+        - Supports schema validation
+        
+        Methods:
+            parse(text): Parse JSON text to dictionary
+            get_format_instructions(): Get JSON format instructions
+            to_langchain(): Convert to LangChain JsonOutputParser
+    
+    PydanticOutputParser: Pydantic model output parser
+        - Parses output into Pydantic models
+        - Validates against model schema
+        - Provides detailed error messages
+        
+        Methods:
+            __init__(pydantic_model): Initialize with Pydantic model class
+            parse(text): Parse text into Pydantic model instance
+            get_format_instructions(): Get Pydantic format instructions
+            to_langchain(): Convert to LangChain PydanticOutputParser
+    
+    ListOutputParser: List output parser
+        - Parses comma or newline separated lists
+        - Supports custom separators
+        - Optionally strips whitespace
+        
+        Methods:
+            __init__(separator, strip): Initialize with separator
+            parse(text): Parse text into list
+            get_format_instructions(): Get list format instructions
+    
+    RegexOutputParser: Regex-based output parser
+        - Extracts data using regular expressions
+        - Supports named capture groups
+        - Returns matched groups as dictionary
+        
+        Methods:
+            __init__(pattern, group_names): Initialize with regex pattern
+            parse(text): Parse text using regex
+            get_format_instructions(): Get regex format instructions
 """
 
 import json

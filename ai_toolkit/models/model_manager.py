@@ -1,5 +1,31 @@
 """
 Model manager for handling multiple AI models and providers.
+
+This module provides centralized management for AI models and providers,
+including model creation, caching, and configuration management.
+
+Classes:
+    ModelManager: Central manager for AI models and providers
+        - Handles model creation, caching, and configuration
+        - Supports multiple providers (DeepSeek, Qwen, GLM)
+        - Loads configuration from YAML files or environment variables
+        
+        Public Methods:
+            __init__(config_path): Initialize model manager with optional config
+            load_config(config_path): Load configuration from YAML file
+            create_model(provider_name, model_name, **kwargs): Create a model instance
+            get_model(provider_name, model_name): Get cached model instance
+            list_models(): List all available models
+            list_providers(): List all available providers
+            remove_model(provider_name, model_name): Remove cached model
+            clear_cache(): Clear all cached models
+            get_model_info(provider_name, model_name): Get detailed model information
+        
+        Private Methods:
+            _load_default_config(): Load default configuration from config files
+            _load_model_config(provider_name, config_data): Load model configuration
+            _load_provider_config(provider_name, config_data): Load provider configuration
+            _expand_env_vars(config_data): Expand environment variables in config
 """
 
 from typing import Dict, List, Optional, Any, Union

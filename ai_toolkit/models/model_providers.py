@@ -1,5 +1,50 @@
 """
 Model provider implementations for different AI services.
+
+This module provides provider implementations for various AI model services,
+including DeepSeek, Qwen (Alibaba), and GLM (Zhipu AI).
+
+Classes:
+    BaseModelProvider: Abstract base class for model providers
+        - Defines interface for all model providers
+        - Handles model creation and caching
+        - Validates provider-specific configurations
+        
+        Methods:
+            __init__(config): Initialize provider with configuration
+            create_model(): Create and return a model instance (abstract)
+            validate_config(): Validate provider-specific configuration (abstract)
+            get_model(): Get or create model instance (lazy loading)
+            reset_model(): Reset the cached model instance
+            provider_name: Get provider name property
+    
+    DeepSeekProvider: DeepSeek model provider
+        - Supports deepseek-chat and deepseek-coder models
+        - Uses OpenAI-compatible API
+        
+        Methods:
+            validate_config(): Validate DeepSeek configuration
+            create_model(): Create DeepSeek model instance
+    
+    QwenProvider: Qwen (Alibaba) model provider
+        - Supports qwen-turbo, qwen-plus, qwen-max models
+        - Uses DashScope API
+        
+        Methods:
+            validate_config(): Validate Qwen configuration
+            create_model(): Create Qwen model instance
+    
+    GLMProvider: GLM (Zhipu AI) model provider
+        - Supports glm-4, glm-4-air, glm-3-turbo models
+        - Uses Zhipu AI API
+        
+        Methods:
+            validate_config(): Validate GLM configuration
+            create_model(): Create GLM model instance
+
+Functions:
+    create_provider(provider_name, config): Factory function to create provider instances
+    get_provider_class(provider_name): Get provider class by name
 """
 
 from abc import ABC, abstractmethod

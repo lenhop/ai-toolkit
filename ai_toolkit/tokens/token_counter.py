@@ -3,6 +3,61 @@ Token counter for calculating token usage and costs.
 
 This module provides functionality to count tokens in text and messages,
 estimate API costs, and analyze token usage patterns.
+
+Classes:
+    ModelType: Enum for supported model types
+        - GPT_4, GPT_4_TURBO, GPT_4O, GPT_3_5_TURBO
+        - CLAUDE_3_OPUS, CLAUDE_3_SONNET, CLAUDE_3_HAIKU
+        - DEEPSEEK_CHAT, QWEN_TURBO, GLM_4
+    
+    TokenUsage: Data class for token usage information
+        - Tracks prompt, completion, and total tokens
+        
+        Properties:
+            input_tokens: Alias for prompt_tokens
+            output_tokens: Alias for completion_tokens
+    
+    CostEstimate: Data class for cost estimation
+        - Tracks prompt, completion, and total costs
+        
+        Fields:
+            prompt_cost: Cost for prompt tokens
+            completion_cost: Cost for completion tokens
+            total_cost: Total cost
+            currency: Currency (default USD)
+            model: Model name
+    
+    ModelPricing: Data class for model pricing information
+        - Defines pricing per 1K tokens
+        
+        Fields:
+            model: Model name
+            prompt_price_per_1k: Price per 1K prompt tokens
+            completion_price_per_1k: Price per 1K completion tokens
+            currency: Currency
+        
+        Methods:
+            calculate_cost(usage): Calculate cost from token usage
+    
+    TokenCounter: Counter for token usage and costs
+        - Counts tokens using tiktoken
+        - Estimates costs for multiple models
+        - Analyzes token usage patterns
+        
+        Methods:
+            __init__(model, custom_pricing, logger): Initialize counter
+            count_tokens(text): Count tokens in text
+            count_message_tokens(message): Count tokens in single message
+            count_messages_tokens(messages): Count tokens in message list
+            estimate_completion_tokens(prompt, max_tokens, estimated_ratio): Estimate completion tokens
+            estimate_cost(prompt_tokens, completion_tokens, model): Estimate cost
+            analyze_text(text): Analyze text for token patterns
+            compare_models(prompt_tokens, completion_tokens): Compare costs across models
+            batch_count_tokens(texts): Count tokens for multiple texts
+            get_model_info(model): Get model information
+            update_pricing(model, pricing): Update model pricing
+            get_supported_models(): Get list of supported models
+            calculate_conversation_cost(messages, estimated_response_tokens): Calculate conversation cost
 """
 
 import tiktoken

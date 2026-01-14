@@ -3,6 +3,29 @@ Configuration manager for loading and managing application configurations.
 
 This module provides functionality to load, validate, and manage
 configuration files in YAML and JSON formats.
+
+Classes:
+    ConfigManager: Manager for application configurations
+        - Loads YAML and JSON configuration files
+        - Supports environment variable substitution
+        - Provides nested key access with dot notation
+        - Merges multiple configuration files
+        
+        Methods:
+            __init__(config_path, auto_load, logger): Initialize manager
+            load_config(config_path): Load configuration from file
+            save_config(config_path, config): Save configuration to file
+            get_config(key, default): Get configuration value
+            set_config(key, value): Set configuration value
+            delete_config(key): Delete configuration key
+            has_config(key): Check if key exists
+            update_config(updates, merge): Update configuration
+            reset_config(): Reset to original configuration
+            clear_config(): Clear all configuration
+            get_all_keys(prefix, separator): Get all configuration keys
+            to_dict(): Convert configuration to dictionary
+            from_dict(config): Load configuration from dictionary
+            merge_configs(*config_paths): Merge multiple configuration files
 """
 
 import os

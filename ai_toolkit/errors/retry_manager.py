@@ -3,6 +3,30 @@ Retry manager for handling failed operations with intelligent retry strategies.
 
 This module provides sophisticated retry mechanisms including exponential backoff,
 jitter, circuit breakers, and conditional retry logic.
+
+Classes:
+    RetryStrategy: Enum for retry strategies
+        - EXPONENTIAL: Exponential backoff
+        - LINEAR: Linear backoff
+        - FIBONACCI: Fibonacci backoff
+        - FIXED: Fixed delay
+    
+    RetryManager: Manager for retry operations
+        - Implements multiple retry strategies
+        - Includes circuit breaker pattern
+        - Tracks retry statistics
+        - Supports conditional retry logic
+        
+        Methods:
+            __init__(max_attempts, base_delay, max_delay, strategy): Initialize manager
+            retry(func, *args, **kwargs): Retry function with strategy
+            retry_with_backoff(func, *args, **kwargs): Retry with exponential backoff
+            retry_with_condition(func, condition, *args, **kwargs): Conditional retry
+            should_retry(error, attempt): Determine if should retry
+            calculate_delay(attempt): Calculate retry delay
+            reset_circuit(): Reset circuit breaker
+            get_stats(): Get retry statistics
+            clear_stats(): Clear retry statistics
 """
 
 import time

@@ -1,5 +1,25 @@
 """
 Parser manager for centralized output parsing management.
+
+This module provides centralized management for output parsers including
+creation, caching, and parser selection based on output type.
+
+Classes:
+    ParserManager: Central manager for output parsers
+        - Creates and caches parser instances
+        - Provides parser selection and management
+        - Supports multiple parser types
+        
+        Methods:
+            __init__(): Initialize parser manager
+            create_parser(parser_type, **kwargs): Create parser instance
+            get_parser(parser_type): Get cached parser instance
+            parse(text, parser_type, **kwargs): Parse text with specified parser
+            validate_output(text, parser_type, **kwargs): Validate output format
+            list_parsers(): List available parser types
+            register_parser(name, parser_class): Register custom parser
+            remove_parser(parser_type): Remove cached parser
+            clear_cache(): Clear all cached parsers
 """
 
 from typing import Dict, List, Any, Optional, Type, Union
