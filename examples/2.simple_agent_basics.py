@@ -462,12 +462,13 @@ print()
 # Key Concepts:
 # - Structured output ensures predictable, parseable responses
 # - Define schemas using Pydantic models
-# - Useful for API responses, database inserts, data validation
+# - Use ToolStrategy for automatic validation and error handling
+# - Useful for API responses, database inserts, data extraction
 #
 # Methods:
-# - with_structured_output(): Bind schema to model
+# - ToolStrategy: Official pattern for structured output with agents
 # - Pydantic models: Type-safe schemas with validation
-# - JSON Schema: Maximum control and interoperability
+# - handle_errors: Automatic error handling (default: True)
 #
 # Use Cases:
 # - API integrations
@@ -480,11 +481,15 @@ print("=" * 80)
 print("7. STRUCTURED OUTPUT - Formatted Responses")
 print("=" * 80)
 
+# Import structured output components
+from langchain.agents.structured_output import ToolStrategy
+from langchain.agents.structured_output import StructuredOutputValidationError
+
 # Define Pydantic schema for structured output
 class WeatherInfo(BaseModel):
     """Structured weather information."""
     city: str = Field(description="The city name")
-    temperature: int = Field(description="Temperature in Celsius")
+    temperature: int = Field(description="Temperature in Celsius", ge=-50, le=60)
     condition: str = Field(description="Weather condition")
     confidence: Literal["high", "medium", "low"] = Field(
         description="Confidence level of the information"
@@ -492,58 +497,306 @@ class WeatherInfo(BaseModel):
 
 print("✅ Pydantic schema defined: WeatherInfo")
 print(f"   Fields: city, temperature, condition, confidence")
+print(f"   Validation: temperature must be between -50 and 60")
 print()
 
-# Request structured output using prompt engineering
-# Note: DeepSeek doesn't support native structured output,
-# so we use prompt engineering to get JSON format
-query_structured = """What's the weather in Beijing? 
-Respond in this exact JSON format:
-{
-    "city": "city name",
-    "temperature": temperature_in_celsius,
-    "condition": "weather condition",
-    "confidence": "high/medium/low"
-}"""
+# Example 1: Basic Structured Output with ToolStrategy
+print("-" * 80)
+print("Example 1: Basic Structured Output")
+print("-" * 80)
 
-print(f"👤 User: Requesting structured weather data for Beijing")
+# Create agent with structured output
+# ToolStrategy automatically handles validation and error recovery
+structured_agent = create_agent(
+    model=model,
+    tools=[],  # No tools needed for structured output
+    response_format=ToolStrategy(WeatherInfo),  # Default: handle_errors=True
+    system_prompt="You are a helpful assistant that provides weather information in structured format. Do not make up any field or value."
+)
 
-# Invoke model directly for structured output
-result_structured = model.invoke([
-    SystemMessage(content="You provide structured JSON responses."),
-    HumanMessage(content=query_structured)
-])
+query_structured = "What's the weather in Beijing?"
+print(f"👤 User: {query_structured}")
 
-print(f"\n🤖 Raw Response:")
-print(f"{result_structured.content}")
+# Invoke agent with structured output
+result_structured = structured_agent.invoke(
+    {"messages": [HumanMessage(content=query_structured)]},
+    config=config
+)
 
-# Parse and validate against Pydantic schema
-try:
-    import json
-    content = result_structured.content.strip()
+# Extract structured output from ToolMessage
+print(f"\n🤖 Agent Response:")
+structured_found = False
+for msg in result_structured['messages']:
+    # Check if message is a ToolMessage (contains structured output)
+    if type(msg).__name__ == "ToolMessage":
+        print(f"   Raw content: {msg.content}")
+        structured_found = True
+        
+        # Parse the structured output
+        try:
+            import json
+            # Try to parse as JSON first
+            weather_data = json.loads(msg.content)
+            weather_info = WeatherInfo(**weather_data)
+            
+            print(f"\n✅ Structured Output (Validated):")
+            print(f"   City: {weather_info.city}")
+            print(f"   Temperature: {weather_info.temperature}°C")
+            print(f"   Condition: {weather_info.condition}")
+            print(f"   Confidence: {weather_info.confidence}")
+        except json.JSONDecodeError:
+            # If not JSON, try to parse the string representation
+            try:
+                # Extract values from string like "city='Beijing' temperature=15..."
+                import re
+                content = msg.content
+                city_match = re.search(r"city='([^']+)'", content)
+                temp_match = re.search(r"temperature=(\d+)", content)
+                cond_match = re.search(r"condition='([^']+)'", content)
+                conf_match = re.search(r"confidence='([^']+)'", content)
+                
+                if all([city_match, temp_match, cond_match, conf_match]):
+                    weather_info = WeatherInfo(
+                        city=city_match.group(1),
+                        temperature=int(temp_match.group(1)),
+                        condition=cond_match.group(1),
+                        confidence=conf_match.group(1)
+                    )
+                    
+                    print(f"\n✅ Structured Output (Validated):")
+                    print(f"   City: {weather_info.city}")
+                    print(f"   Temperature: {weather_info.temperature}°C")
+                    print(f"   Condition: {weather_info.condition}")
+                    print(f"   Confidence: {weather_info.confidence}")
+                else:
+                    print(f"   ⚠️  Could not parse structured output")
+            except Exception as e:
+                print(f"   ⚠️  Parsing error: {e}")
+        except Exception as e:
+            print(f"   ⚠️  Validation error: {e}")
+
+if not structured_found:
+    print("   ℹ️  No ToolMessage found - structured output may be in final response")
+
+print()
+
+# Example 2: Custom Error Handling
+print("-" * 80)
+print("Example 2: Custom Error Handling")
+print("-" * 80)
+
+# Define custom error handler
+def custom_error_handler(error: Exception) -> str:
+    """
+    Custom error handler for structured output validation.
     
-    # Handle markdown code blocks
-    if "```json" in content:
-        content = content.split("```json")[1].split("```")[0].strip()
-    elif "```" in content:
-        content = content.split("```")[1].split("```")[0].strip()
+    Args:
+        error: The validation error
     
-    # Parse JSON
-    parsed_data = json.loads(content)
-    
-    # Validate against Pydantic schema
-    weather_info = WeatherInfo(**parsed_data)
-    
-    print(f"\n✅ Structured Output (Validated):")
-    print(f"   City: {weather_info.city}")
-    print(f"   Temperature: {weather_info.temperature}°C")
-    print(f"   Condition: {weather_info.condition}")
-    print(f"   Confidence: {weather_info.confidence}")
-    print()
-    
-except Exception as e:
-    print(f"\n⚠️  Parsing error: {e}")
-    print()
+    Returns:
+        Error message to send back to the model
+    """
+    if isinstance(error, StructuredOutputValidationError):
+        return "There was an issue with the format. Please ensure all fields are correct and try again."
+    else:
+        return f"Error: {str(error)}. Please provide valid weather information."
+
+print("✅ Custom error handler defined")
+print(f"   Handles: StructuredOutputValidationError and general errors")
+print()
+
+# Create agent with custom error handling
+structured_agent_custom = create_agent(
+    model=model,
+    tools=[],
+    response_format=ToolStrategy(
+        schema=WeatherInfo,
+        handle_errors=custom_error_handler  # Custom error handler
+    ),
+    system_prompt="You are a helpful assistant that provides weather information. Ensure temperature is realistic (-50 to 60°C)."
+)
+
+query_custom = "What's the weather in Tokyo?"
+print(f"👤 User: {query_custom}")
+
+# Invoke agent with custom error handling
+result_custom = structured_agent_custom.invoke(
+    {"messages": [HumanMessage(content=query_custom)]},
+    config=config
+)
+
+# Extract structured output
+print(f"\n🤖 Agent Response:")
+structured_found = False
+for msg in result_custom['messages']:
+    if type(msg).__name__ == "ToolMessage":
+        structured_found = True
+        try:
+            import json
+            # Try JSON first
+            weather_data = json.loads(msg.content)
+            weather_info = WeatherInfo(**weather_data)
+            
+            print(f"✅ Structured Output (Validated):")
+            print(f"   City: {weather_info.city}")
+            print(f"   Temperature: {weather_info.temperature}°C")
+            print(f"   Condition: {weather_info.condition}")
+            print(f"   Confidence: {weather_info.confidence}")
+        except json.JSONDecodeError:
+            # Parse string representation
+            try:
+                import re
+                content = msg.content
+                city_match = re.search(r"city='([^']+)'", content)
+                temp_match = re.search(r"temperature=(\d+)", content)
+                cond_match = re.search(r"condition='([^']+)'", content)
+                conf_match = re.search(r"confidence='([^']+)'", content)
+                
+                if all([city_match, temp_match, cond_match, conf_match]):
+                    weather_info = WeatherInfo(
+                        city=city_match.group(1),
+                        temperature=int(temp_match.group(1)),
+                        condition=cond_match.group(1),
+                        confidence=conf_match.group(1)
+                    )
+                    
+                    print(f"✅ Structured Output (Validated):")
+                    print(f"   City: {weather_info.city}")
+                    print(f"   Temperature: {weather_info.temperature}°C")
+                    print(f"   Condition: {weather_info.condition}")
+                    print(f"   Confidence: {weather_info.confidence}")
+                else:
+                    print(f"⚠️  Could not parse: {msg.content}")
+            except Exception as e:
+                print(f"⚠️  Error: {e}")
+        except Exception as e:
+            print(f"⚠️  Error: {e}")
+
+if not structured_found:
+    print("ℹ️  No ToolMessage found")
+
+print()
+
+# Example 3: Multiple Schema Types (Union)
+print("-" * 80)
+print("Example 3: Multiple Schema Types")
+print("-" * 80)
+
+# Define additional schema
+class CityInfo(BaseModel):
+    """City information."""
+    name: str = Field(description="City name")
+    country: str = Field(description="Country name")
+    population: int = Field(description="Population", ge=0)
+    famous_for: str = Field(description="What the city is famous for")
+
+print("✅ Additional schema defined: CityInfo")
+print(f"   Fields: name, country, population, famous_for")
+print()
+
+# Note: Union types require Python 3.10+ or typing.Union
+from typing import Union
+
+# Create agent that can return either WeatherInfo or CityInfo
+multi_schema_agent = create_agent(
+    model=model,
+    tools=[],
+    response_format=ToolStrategy(
+        schema=Union[WeatherInfo, CityInfo],
+        handle_errors=True  # Automatic error handling
+    ),
+    system_prompt="You are a helpful assistant. Provide weather information OR city information based on the user's question."
+)
+
+query_multi = "Tell me about Beijing as a city"
+print(f"👤 User: {query_multi}")
+
+# Invoke agent with multiple schema types
+result_multi = multi_schema_agent.invoke(
+    {"messages": [HumanMessage(content=query_multi)]},
+    config=config
+)
+
+# Extract structured output (could be either type)
+print(f"\n🤖 Agent Response:")
+structured_found = False
+for msg in result_multi['messages']:
+    if type(msg).__name__ == "ToolMessage":
+        structured_found = True
+        try:
+            import json
+            # Try JSON first
+            data = json.loads(msg.content)
+            
+            # Try to determine which schema was used
+            if "temperature" in data:
+                info = WeatherInfo(**data)
+                print(f"✅ WeatherInfo returned:")
+                print(f"   City: {info.city}")
+                print(f"   Temperature: {info.temperature}°C")
+                print(f"   Condition: {info.condition}")
+            elif "population" in data:
+                info = CityInfo(**data)
+                print(f"✅ CityInfo returned:")
+                print(f"   Name: {info.name}")
+                print(f"   Country: {info.country}")
+                print(f"   Population: {info.population:,}")
+                print(f"   Famous for: {info.famous_for}")
+        except json.JSONDecodeError:
+            # Parse string representation
+            try:
+                import re
+                content = msg.content
+                
+                # Check if it's WeatherInfo
+                if "temperature=" in content:
+                    city_match = re.search(r"city='([^']+)'", content)
+                    temp_match = re.search(r"temperature=(\d+)", content)
+                    cond_match = re.search(r"condition='([^']+)'", content)
+                    conf_match = re.search(r"confidence='([^']+)'", content)
+                    
+                    if all([city_match, temp_match, cond_match, conf_match]):
+                        info = WeatherInfo(
+                            city=city_match.group(1),
+                            temperature=int(temp_match.group(1)),
+                            condition=cond_match.group(1),
+                            confidence=conf_match.group(1)
+                        )
+                        print(f"✅ WeatherInfo returned:")
+                        print(f"   City: {info.city}")
+                        print(f"   Temperature: {info.temperature}°C")
+                        print(f"   Condition: {info.condition}")
+                
+                # Check if it's CityInfo
+                elif "population=" in content:
+                    name_match = re.search(r"name='([^']+)'", content)
+                    country_match = re.search(r"country='([^']+)'", content)
+                    pop_match = re.search(r"population=(\d+)", content)
+                    famous_match = re.search(r"famous_for='([^']+)'", content)
+                    
+                    if all([name_match, country_match, pop_match, famous_match]):
+                        info = CityInfo(
+                            name=name_match.group(1),
+                            country=country_match.group(1),
+                            population=int(pop_match.group(1)),
+                            famous_for=famous_match.group(1)
+                        )
+                        print(f"✅ CityInfo returned:")
+                        print(f"   Name: {info.name}")
+                        print(f"   Country: {info.country}")
+                        print(f"   Population: {info.population:,}")
+                        print(f"   Famous for: {info.famous_for}")
+                else:
+                    print(f"⚠️  Could not parse: {msg.content}")
+            except Exception as e:
+                print(f"⚠️  Error: {e}")
+        except Exception as e:
+            print(f"⚠️  Error: {e}")
+
+if not structured_found:
+    print("ℹ️  No ToolMessage found")
+
+print()
 
 
 # =============================================================================
