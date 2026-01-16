@@ -51,7 +51,13 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union
 from langchain_core.language_models.base import BaseLanguageModel
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_community.chat_models import ChatOpenAI
+
+# Try to import from langchain-openai first, fall back to langchain-community
+try:
+    from langchain_openai import ChatOpenAI
+except ImportError:
+    from langchain_community.chat_models import ChatOpenAI
+
 from zhipuai import ZhipuAI
 
 from .model_config import ModelConfig
@@ -237,7 +243,11 @@ class GLMChatModel(BaseChatModel):
         **kwargs
     ):
         """Initialize GLM chat model."""
-        super().__init__(**kwargs)
+        # Filter out fields that BaseChatModel doesn't accept
+        # BaseChatModel is a Pydantic model and will reject unknown fields
+        filtered_kwargs = {k: v for k, v in kwargs.items() 
+                          if k not in ['api_key', 'base_url', 'frequency_penalty', 'presence_penalty']}
+        super().__init__(**filtered_kwargs)
         self.api_key = api_key
         self.model = model
         self.temperature = temperature
