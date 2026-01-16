@@ -21,29 +21,6 @@ Key Methods:
     - clone_message(): Create a copy of a message
     - to_string(): Convert messages to single string
 
-Usage Example:
-    >>> from ai_toolkit.messages import MessageConverter
-    >>> from langchain_core.messages import HumanMessage
-    >>> 
-    >>> # Convert to dictionary
-    >>> msg = HumanMessage(content="Hello!", name="Alice")
-    >>> dict_msg = MessageConverter.to_dict(msg)
-    >>> print(dict_msg)
-    {'content': 'Hello!', 'role': 'user', 'name': 'Alice'}
-    >>> 
-    >>> # Convert from dictionary
-    >>> data = {'role': 'user', 'content': 'Hello!'}
-    >>> message = MessageConverter.from_dict(data)
-    >>> print(type(message).__name__)
-    HumanMessage
-    >>> 
-    >>> # Merge message lists
-    >>> history = [SystemMessage(content="You are helpful")]
-    >>> new_msgs = [HumanMessage(content="Hello!")]
-    >>> merged = MessageConverter.merge_messages(history, new_msgs)
-    >>> print(len(merged))
-    2
-
 Features:
     - Dictionary conversion (to/from)
     - OpenAI API format conversion

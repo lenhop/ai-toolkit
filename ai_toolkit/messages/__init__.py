@@ -18,23 +18,6 @@ Components:
     - MessageValidator: Validate message structures and flows
     - MessageConverter: Convert between different message formats
 
-Quick Start:
-    >>> from ai_toolkit.messages import MessageBuilder, MessageFormatter
-    >>> 
-    >>> # Build messages with fluent interface
-    >>> builder = MessageBuilder()
-    >>> messages = (builder
-    ...     .add_system("You are a helpful assistant")
-    ...     .add_human("Hello!")
-    ...     .add_ai("Hi! How can I help?")
-    ...     .build())
-    >>> 
-    >>> # Display as conversation
-    >>> MessageFormatter.print_messages(messages, style='conversation')
-    🔧 System: You are a helpful assistant
-    👤 User: Hello!
-    🤖 AI: Hi! How can I help?
-
 Features:
     - Clean, fluent API for message construction
     - Multiple display styles with emoji icons

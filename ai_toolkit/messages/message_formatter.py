@@ -19,25 +19,6 @@ Key Methods:
     - get_message_stats(): Get statistics about messages
     - print_messages(): Print messages to console
 
-Usage Example:
-    >>> from ai_toolkit.messages import MessageFormatter
-    >>> from langchain_core.messages import SystemMessage, HumanMessage
-    >>> 
-    >>> messages = [
-    ...     SystemMessage(content="You are helpful"),
-    ...     HumanMessage(content="Hello!")
-    ... ]
-    >>> 
-    >>> # Display as conversation
-    >>> print(MessageFormatter.format_conversation(messages))
-    🔧 System: You are helpful
-    👤 User: Hello!
-    >>> 
-    >>> # Get statistics
-    >>> stats = MessageFormatter.get_message_stats(messages)
-    >>> print(f"Total: {stats['total']}, Human: {stats['human']}")
-    Total: 2, Human: 1
-
 Features:
     - Multiple display styles (conversation, numbered, simple)
     - Emoji icons for message types

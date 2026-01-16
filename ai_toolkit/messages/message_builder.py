@@ -17,19 +17,6 @@ Key Functions:
     - create_ai_message(): Create an AIMessage
     - create_tool_message(): Create a ToolMessage
 
-Usage Example:
-    >>> from ai_toolkit.messages import MessageBuilder
-    >>> 
-    >>> builder = MessageBuilder()
-    >>> messages = (builder
-    ...     .add_system("You are a helpful assistant")
-    ...     .add_human("Hello!")
-    ...     .add_ai("Hi! How can I help?")
-    ...     .build())
-    >>> 
-    >>> print(f"Built {len(messages)} messages")
-    Built 3 messages
-
 Features:
     - Fluent interface with method chaining
     - Support for all LangChain message types

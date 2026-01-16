@@ -21,29 +21,6 @@ Key Methods:
     - get_first_message_of_type(): Get first message of type
     - get_last_message_of_type(): Get last message of type
 
-Usage Example:
-    >>> from ai_toolkit.messages import MessageValidator
-    >>> from langchain_core.messages import SystemMessage, HumanMessage
-    >>> 
-    >>> messages = [
-    ...     SystemMessage(content="You are helpful"),
-    ...     HumanMessage(content="Hello!")
-    ... ]
-    >>> 
-    >>> # Validate messages
-    >>> is_valid, error = MessageValidator.validate_messages(
-    ...     messages,
-    ...     require_system=True,
-    ...     require_human=True
-    ... )
-    >>> print(f"Valid: {is_valid}")
-    Valid: True
-    >>> 
-    >>> # Count message types
-    >>> counts = MessageValidator.count_message_types(messages)
-    >>> print(f"System: {counts['system']}, Human: {counts['human']}")
-    System: 1, Human: 1
-
 Features:
     - Single message validation
     - Message list validation with requirements
