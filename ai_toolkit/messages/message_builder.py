@@ -2,6 +2,46 @@
 Message Builder - Create LangChain messages easily
 
 This module provides a fluent interface for building LangChain messages.
+
+Overview:
+    The MessageBuilder class provides a clean, chainable API for constructing
+    message lists. It supports all four LangChain message types: SystemMessage,
+    HumanMessage, AIMessage, and ToolMessage.
+
+Key Classes:
+    - MessageBuilder: Fluent interface for building message lists
+    
+Key Functions:
+    - create_system_message(): Create a SystemMessage
+    - create_human_message(): Create a HumanMessage
+    - create_ai_message(): Create an AIMessage
+    - create_tool_message(): Create a ToolMessage
+
+Usage Example:
+    >>> from ai_toolkit.messages import MessageBuilder
+    >>> 
+    >>> builder = MessageBuilder()
+    >>> messages = (builder
+    ...     .add_system("You are a helpful assistant")
+    ...     .add_human("Hello!")
+    ...     .add_ai("Hi! How can I help?")
+    ...     .build())
+    >>> 
+    >>> print(f"Built {len(messages)} messages")
+    Built 3 messages
+
+Features:
+    - Fluent interface with method chaining
+    - Support for all LangChain message types
+    - Convenient conversation building
+    - Utility methods for message management
+    - Type-safe message construction
+
+Official Documentation:
+    https://docs.langchain.com/oss/python/langchain/messages
+
+Author: AI Toolkit Team
+Version: 1.0.0
 """
 
 from typing import List, Dict, Any, Optional

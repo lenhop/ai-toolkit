@@ -2,6 +2,74 @@
 Message Converter - Convert between message formats
 
 This module provides utilities for converting messages between different formats.
+
+Overview:
+    The MessageConverter class provides methods for transforming LangChain
+    messages to and from various formats including dictionaries, OpenAI format,
+    strings, and more. It also supports message merging and cloning.
+
+Key Classes:
+    - MessageConverter: Converter for transforming messages between formats
+
+Key Methods:
+    - to_dict(): Convert message to dictionary
+    - from_dict(): Convert dictionary to message
+    - to_openai_format(): Convert to OpenAI API format
+    - from_openai_format(): Convert from OpenAI API format
+    - extract_content(): Extract content strings only
+    - merge_messages(): Merge multiple message lists
+    - clone_message(): Create a copy of a message
+    - to_string(): Convert messages to single string
+
+Usage Example:
+    >>> from ai_toolkit.messages import MessageConverter
+    >>> from langchain_core.messages import HumanMessage
+    >>> 
+    >>> # Convert to dictionary
+    >>> msg = HumanMessage(content="Hello!", name="Alice")
+    >>> dict_msg = MessageConverter.to_dict(msg)
+    >>> print(dict_msg)
+    {'content': 'Hello!', 'role': 'user', 'name': 'Alice'}
+    >>> 
+    >>> # Convert from dictionary
+    >>> data = {'role': 'user', 'content': 'Hello!'}
+    >>> message = MessageConverter.from_dict(data)
+    >>> print(type(message).__name__)
+    HumanMessage
+    >>> 
+    >>> # Merge message lists
+    >>> history = [SystemMessage(content="You are helpful")]
+    >>> new_msgs = [HumanMessage(content="Hello!")]
+    >>> merged = MessageConverter.merge_messages(history, new_msgs)
+    >>> print(len(merged))
+    2
+
+Features:
+    - Dictionary conversion (to/from)
+    - OpenAI API format conversion
+    - Content extraction
+    - Message list merging
+    - Message cloning (deep copy)
+    - String concatenation
+    - Format transformation
+
+Supported Formats:
+    - Dictionary: {'role': 'user', 'content': '...'}
+    - OpenAI: Standard OpenAI API message format
+    - String: Concatenated text with separators
+    - Content list: List of content strings only
+
+Role Mapping:
+    - SystemMessage <-> 'system'
+    - HumanMessage <-> 'user'
+    - AIMessage <-> 'assistant'
+    - ToolMessage <-> 'tool'
+
+Official Documentation:
+    https://docs.langchain.com/oss/python/langchain/messages
+
+Author: AI Toolkit Team
+Version: 1.0.0
 """
 
 from typing import List, Dict, Any

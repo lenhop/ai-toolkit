@@ -2,6 +2,60 @@
 Message Formatter - Format and display LangChain messages
 
 This module provides utilities for formatting messages for display.
+
+Overview:
+    The MessageFormatter class provides various methods for displaying and
+    formatting LangChain messages in different styles. It supports conversation
+    format with emoji icons, numbered lists, dictionary format, and statistics.
+
+Key Classes:
+    - MessageFormatter: Formatter for displaying LangChain messages
+
+Key Methods:
+    - format_message(): Format a single message for display
+    - format_messages(): Format multiple messages with options
+    - format_conversation(): Format as conversation with emoji icons
+    - format_as_dict(): Convert message to dictionary
+    - get_message_stats(): Get statistics about messages
+    - print_messages(): Print messages to console
+
+Usage Example:
+    >>> from ai_toolkit.messages import MessageFormatter
+    >>> from langchain_core.messages import SystemMessage, HumanMessage
+    >>> 
+    >>> messages = [
+    ...     SystemMessage(content="You are helpful"),
+    ...     HumanMessage(content="Hello!")
+    ... ]
+    >>> 
+    >>> # Display as conversation
+    >>> print(MessageFormatter.format_conversation(messages))
+    🔧 System: You are helpful
+    👤 User: Hello!
+    >>> 
+    >>> # Get statistics
+    >>> stats = MessageFormatter.get_message_stats(messages)
+    >>> print(f"Total: {stats['total']}, Human: {stats['human']}")
+    Total: 2, Human: 1
+
+Features:
+    - Multiple display styles (conversation, numbered, simple)
+    - Emoji icons for message types
+    - Message statistics and analysis
+    - Dictionary conversion for serialization
+    - Customizable formatting options
+    - Console printing with style selection
+
+Display Styles:
+    - conversation: Emoji icons with role labels
+    - numbered: Numbered list with message types
+    - simple: Plain content without decorations
+
+Official Documentation:
+    https://docs.langchain.com/oss/python/langchain/messages
+
+Author: AI Toolkit Team
+Version: 1.0.0
 """
 
 from typing import List, Optional

@@ -2,6 +2,69 @@
 Message Validator - Validate LangChain messages
 
 This module provides utilities for validating message structures.
+
+Overview:
+    The MessageValidator class provides comprehensive validation methods for
+    LangChain messages. It can validate individual messages, message lists,
+    conversation flows, and provide filtering and counting capabilities.
+
+Key Classes:
+    - MessageValidator: Validator for LangChain messages
+
+Key Methods:
+    - validate_message(): Validate a single message
+    - validate_messages(): Validate a list of messages
+    - validate_conversation_flow(): Validate message ordering
+    - count_message_types(): Count messages by type
+    - filter_by_type(): Filter messages by type
+    - has_message_type(): Check if type exists
+    - get_first_message_of_type(): Get first message of type
+    - get_last_message_of_type(): Get last message of type
+
+Usage Example:
+    >>> from ai_toolkit.messages import MessageValidator
+    >>> from langchain_core.messages import SystemMessage, HumanMessage
+    >>> 
+    >>> messages = [
+    ...     SystemMessage(content="You are helpful"),
+    ...     HumanMessage(content="Hello!")
+    ... ]
+    >>> 
+    >>> # Validate messages
+    >>> is_valid, error = MessageValidator.validate_messages(
+    ...     messages,
+    ...     require_system=True,
+    ...     require_human=True
+    ... )
+    >>> print(f"Valid: {is_valid}")
+    Valid: True
+    >>> 
+    >>> # Count message types
+    >>> counts = MessageValidator.count_message_types(messages)
+    >>> print(f"System: {counts['system']}, Human: {counts['human']}")
+    System: 1, Human: 1
+
+Features:
+    - Single message validation
+    - Message list validation with requirements
+    - Conversation flow validation
+    - Message type counting and filtering
+    - First/last message retrieval by type
+    - Empty content detection
+    - ToolMessage validation (tool_call_id required)
+
+Validation Rules:
+    - Messages must have non-empty content
+    - ToolMessage must have tool_call_id
+    - SystemMessage should be first (if present)
+    - Only one SystemMessage at start
+    - Optional requirements for message types
+
+Official Documentation:
+    https://docs.langchain.com/oss/python/langchain/messages
+
+Author: AI Toolkit Team
+Version: 1.0.0
 """
 
 from typing import List, Optional, Tuple
