@@ -190,7 +190,14 @@ class TokenCounter:
             custom_pricing: Custom pricing information
             logger: Logger for debugging
         """
-        self.model = model if isinstance(model, ModelType) else ModelType(model)
+        try:
+            self.model = model if isinstance(model, ModelType) else ModelType(model)
+        except (ValueError, AttributeError):
+            # Fallback to default model if model string doesn't match enum
+            logger_instance = logger or logging.getLogger(__name__)
+            logger_instance.warning(f"Unsupported model '{model}', falling back to GPT_4")
+            self.model = ModelType.GPT_4
+        
         self.logger = logger or logging.getLogger(__name__)
         
         # Setup pricing

@@ -31,7 +31,7 @@ Author: AI Toolkit Team
 Version: 1.0.0
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from langchain_core.messages import (
     SystemMessage,
     HumanMessage,
@@ -212,7 +212,7 @@ class MessageBuilder:
     
     def add_conversation(
         self,
-        exchanges: List[tuple[str, str]]
+        exchanges: List[Tuple[str, str]]
     ) -> 'MessageBuilder':
         """
         Add multiple human-AI message pairs.

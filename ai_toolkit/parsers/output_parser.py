@@ -258,18 +258,27 @@ class JsonOutputParser(BaseOutputParser):
         return None
     
     def _fix_json_issues(self, text: str) -> str:
-        """Fix common JSON formatting issues."""
+        """
+        Fix common JSON formatting issues.
+        
+        Note: This is a best-effort recovery mechanism used only when strict=False.
+        The regex patterns may incorrectly modify non-JSON text that matches the patterns.
+        For production use with strict validation requirements, use strict=True mode.
+        """
         # Remove leading/trailing whitespace
         text = text.strip()
         
         # Fix trailing commas
         text = re.sub(r',(\s*[}\]])', r'\1', text)
         
-        # Fix missing quotes around keys
-        text = re.sub(r'(\w+):', r'"\1":', text)
+        # Fix missing quotes around keys (only within JSON object boundaries)
+        # Match word: pattern only when preceded by { or , and followed by value
+        # This avoids fixing non-JSON text like "name: John" in regular text
+        text = re.sub(r'(\{|,)\s*(\w+):', r'\1"\2":', text)
         
-        # Fix single quotes to double quotes
-        text = text.replace("'", '"')
+        # Fix single quotes to double quotes (but be careful with escaped quotes)
+        # Only replace single quotes that are not escaped
+        text = re.sub(r"(?<!\\)'", '"', text)
         
         # Fix boolean values
         text = re.sub(r'\bTrue\b', 'true', text)
@@ -279,15 +288,43 @@ class JsonOutputParser(BaseOutputParser):
         return text
     
     def _validate_schema(self, data: Dict[str, Any]) -> None:
-        """Validate data against schema."""
+        """
+        Validate data against schema.
+        
+        Supports nested structures and basic type checking.
+        """
         if not self.schema:
             return
         
-        # Simple schema validation (can be extended)
+        def validate_value(value: Any, expected_type: Any, key_path: str = "") -> None:
+            """Recursively validate value against expected type."""
+            if isinstance(expected_type, dict):
+                # Nested object validation
+                if not isinstance(value, dict):
+                    raise ValueError(f"Key '{key_path}' should be a dict, got {type(value).__name__}")
+                for nested_key, nested_type in expected_type.items():
+                    nested_path = f"{key_path}.{nested_key}" if key_path else nested_key
+                    if nested_key in value:
+                        validate_value(value[nested_key], nested_type, nested_path)
+            elif isinstance(expected_type, list) and len(expected_type) > 0:
+                # List validation (expects list of items matching first type)
+                if not isinstance(value, list):
+                    raise ValueError(f"Key '{key_path}' should be a list, got {type(value).__name__}")
+                item_type = expected_type[0]
+                for i, item in enumerate(value):
+                    validate_value(item, item_type, f"{key_path}[{i}]")
+            else:
+                # Simple type validation
+                if not isinstance(value, expected_type):
+                    raise ValueError(
+                        f"Key '{key_path}' should be of type {expected_type.__name__}, "
+                        f"got {type(value).__name__}"
+                    )
+        
+        # Validate top-level keys
         for key, expected_type in self.schema.items():
             if key in data:
-                if not isinstance(data[key], expected_type):
-                    raise ValueError(f"Key '{key}' should be of type {expected_type.__name__}")
+                validate_value(data[key], expected_type, key)
     
     def get_format_instructions(self) -> str:
         """Get format instructions for JSON output."""

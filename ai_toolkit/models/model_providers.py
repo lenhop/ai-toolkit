@@ -51,6 +51,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union
 from langchain_core.language_models.base import BaseLanguageModel
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 
 # Try to import from langchain-openai first, fall back to langchain-community
 try:
@@ -267,18 +268,30 @@ class GLMChatModel(BaseChatModel):
         # Convert LangChain messages to GLM format
         glm_messages = []
         for message in messages:
-            if hasattr(message, 'content'):
-                role = 'user'
-                if hasattr(message, 'type'):
-                    if message.type == 'ai':
-                        role = 'assistant'
-                    elif message.type == 'system':
-                        role = 'system'
+            if not hasattr(message, 'content'):
+                continue
                 
-                glm_messages.append({
-                    'role': role,
-                    'content': message.content
-                })
+            # Determine role using isinstance checks (more robust)
+            role = 'user'  # Default role
+            if isinstance(message, AIMessage):
+                role = 'assistant'
+            elif isinstance(message, SystemMessage):
+                role = 'system'
+            elif isinstance(message, HumanMessage):
+                role = 'user'
+            else:
+                # Fallback: try to get type attribute if available
+                if hasattr(message, 'type'):
+                    msg_type = getattr(message, 'type', '')
+                    if msg_type == 'ai':
+                        role = 'assistant'
+                    elif msg_type == 'system':
+                        role = 'system'
+            
+            glm_messages.append({
+                'role': role,
+                'content': str(message.content)  # Ensure content is string
+            })
         
         try:
             # Make API call to GLM
@@ -304,9 +317,19 @@ class GLMChatModel(BaseChatModel):
             raise ValueError(f"GLM API call failed: {str(e)}")
     
     async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
-        """Async generate (not implemented for GLM yet)."""
-        # For now, use sync version
-        return self._generate(messages, stop, run_manager, **kwargs)
+        """
+        Async generate implementation for GLM.
+        
+        Note: Currently uses sync implementation wrapped in asyncio.
+        For true async, would need async HTTP client (aiohttp).
+        """
+        import asyncio
+        # Run sync version in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            lambda: self._generate(messages, stop, run_manager, **kwargs)
+        )
     
     @property
     def _llm_type(self) -> str:

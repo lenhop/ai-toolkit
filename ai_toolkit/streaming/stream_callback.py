@@ -177,8 +177,12 @@ class StreamCallback(BaseCallbackHandler):
                       **kwargs: Any) -> None:
         """Called when a chain starts running."""
         run_id = kwargs.get('run_id')
-        if run_id:
+        if run_id is not None:
             self._current_run_id = str(run_id)
+        else:
+            # Generate a run_id if not provided
+            import uuid
+            self._current_run_id = str(uuid.uuid4())[:8]
         
         if self.verbose:
             print(f"🔗 Chain started (run_id: {self._current_run_id})")
