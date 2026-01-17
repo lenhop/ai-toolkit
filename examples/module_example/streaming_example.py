@@ -4,6 +4,22 @@ Streaming Processing Toolkit Examples
 
 This script demonstrates how to use the streaming processing toolkit
 for handling real-time output from AI models.
+
+Examples included:
+1. Basic streaming - Simple chunk processing and aggregation
+2. Different formats - Handling various chunk formats (OpenAI, Anthropic, etc.)
+3. Callbacks - LangChain callback integration
+4. Buffered streaming - Efficient batch processing
+5. Multi-callback - Multiple concurrent handlers
+6. Session management - Managing multiple conversations
+7. Stream iteration - Replaying and iterating streams
+8. Performance - Large-scale streaming
+9. Real model streaming - Actual AI model streaming (requires API key)
+10. Real agent streaming - LangChain agent with tools (requires API key)
+11. Real-world simulation - Chat interface simulation
+
+Note: Examples 9-10 require valid API keys (DEEPSEEK_API_KEY, QWEN_API_KEY, or GLM_API_KEY)
+      to demonstrate real streaming. They will be skipped if no keys are found.
 """
 
 import os
@@ -428,6 +444,168 @@ def performance_example():
     print(f"  Average chunk size: {stats['average_chunk_size']:.1f} characters")
 
 
+def real_model_streaming_example():
+    """Demonstrate streaming with real AI model."""
+    print("\n🤖 Real Model Streaming Example")
+    print("=" * 50)
+    
+    try:
+        # Initialize model manager
+        manager = ModelManager()
+        
+        # Try to create a model from environment
+        # This will use the first available API key (DeepSeek, Qwen, or GLM)
+        model = None
+        model_name = None
+        
+        for provider in ['deepseek', 'qwen', 'glm']:
+            try:
+                model = manager.create_model_from_env(provider)
+                model_name = provider
+                print(f"✅ Using {provider.upper()} model for streaming")
+                break
+            except Exception as e:
+                continue
+        
+        if model is None:
+            print("⚠️  No API keys found in environment. Skipping real model example.")
+            print("   Set DEEPSEEK_API_KEY, QWEN_API_KEY, or GLM_API_KEY to test real streaming.")
+            return
+        
+        # Create stream handler and callback
+        handler = StreamHandler()
+        
+        # Custom callback for real-time display
+        class RealTimeCallback(StreamCallback):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.display_buffer = ""
+            
+            def on_llm_new_token(self, token: str, **kwargs):
+                super().on_llm_new_token(token, **kwargs)
+                self.display_buffer += token
+                print(token, end="", flush=True)
+            
+            def on_llm_end(self, response, **kwargs):
+                super().on_llm_end(response, **kwargs)
+                print()  # New line
+        
+        callback = RealTimeCallback(stream_handler=handler, verbose=False)
+        
+        # Test streaming with a simple prompt
+        print(f"\n👤 User: Tell me a short joke about programming")
+        print(f"🤖 AI ({model_name}): ", end="", flush=True)
+        
+        # Stream the response
+        response = model.stream("Tell me a short joke about programming", callbacks=[callback])
+        
+        # Consume the stream
+        for chunk in response:
+            pass  # Callback handles display
+        
+        # Get statistics
+        stats = handler.get_statistics()
+        print(f"\n📊 Streaming stats: {stats['chunk_count']} chunks, {stats['characters_per_second']:.1f} chars/s")
+        
+    except Exception as e:
+        print(f"❌ Error in real model streaming: {e}")
+        print("   Make sure you have valid API keys configured.")
+
+
+def real_agent_streaming_example():
+    """Demonstrate streaming with LangChain agent."""
+    print("\n🤖 Real Agent Streaming Example")
+    print("=" * 50)
+    
+    try:
+        from langchain.agents import create_tool_calling_agent, AgentExecutor
+        from langchain_core.prompts import ChatPromptTemplate
+        from langchain.tools import tool
+        
+        # Initialize model manager
+        manager = ModelManager()
+        
+        # Try to create a model
+        model = None
+        model_name = None
+        
+        for provider in ['deepseek', 'qwen', 'glm']:
+            try:
+                model = manager.create_model_from_env(provider)
+                model_name = provider
+                print(f"✅ Using {provider.upper()} model for agent streaming")
+                break
+            except Exception:
+                continue
+        
+        if model is None:
+            print("⚠️  No API keys found. Skipping agent streaming example.")
+            return
+        
+        # Create a simple tool
+        @tool
+        def get_word_length(word: str) -> int:
+            """Get the length of a word."""
+            return len(word)
+        
+        tools = [get_word_length]
+        
+        # Create agent prompt
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a helpful assistant."),
+            ("human", "{input}"),
+            ("placeholder", "{agent_scratchpad}"),
+        ])
+        
+        # Create agent
+        agent = create_tool_calling_agent(model, tools, prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
+        
+        # Create streaming callback
+        handler = StreamHandler()
+        
+        class AgentStreamCallback(StreamCallback):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.in_tool = False
+            
+            def on_tool_start(self, serialized, input_str, **kwargs):
+                self.in_tool = True
+                print(f"\n🔧 Using tool: {serialized.get('name', 'unknown')}")
+            
+            def on_tool_end(self, output, **kwargs):
+                self.in_tool = False
+                print(f"   Result: {output}")
+            
+            def on_llm_new_token(self, token: str, **kwargs):
+                if not self.in_tool:
+                    super().on_llm_new_token(token, **kwargs)
+                    print(token, end="", flush=True)
+            
+            def on_llm_end(self, response, **kwargs):
+                if not self.in_tool:
+                    super().on_llm_end(response, **kwargs)
+                    print()
+        
+        callback = AgentStreamCallback(stream_handler=handler, verbose=False)
+        
+        # Run agent with streaming
+        print(f"\n👤 User: What is the length of the word 'streaming'?")
+        print(f"🤖 Agent ({model_name}): ", end="", flush=True)
+        
+        result = agent_executor.invoke(
+            {"input": "What is the length of the word 'streaming'?"},
+            {"callbacks": [callback]}
+        )
+        
+        print(f"\n✅ Final answer: {result['output']}")
+        
+    except ImportError as e:
+        print(f"⚠️  Missing dependencies for agent example: {e}")
+    except Exception as e:
+        print(f"❌ Error in agent streaming: {e}")
+
+
 def real_world_example():
     """Demonstrate real-world usage patterns."""
     print("\n🌍 Real-World Usage Example")
@@ -504,6 +682,8 @@ def run_all_examples():
         session_management_example,
         stream_iterator_example,
         performance_example,
+        real_model_streaming_example,  # Real model streaming
+        real_agent_streaming_example,  # Real agent streaming
         real_world_example,
     ]
     
@@ -517,6 +697,8 @@ def run_all_examples():
             break
         except Exception as e:
             print(f"\n❌ Error in example: {e}")
+            import traceback
+            traceback.print_exc()
     
     print(f"\n🎉 Streaming Examples Complete!")
     print("\n💡 Key Features Demonstrated:")
@@ -528,6 +710,8 @@ def run_all_examples():
     print("   ✅ Session management and statistics")
     print("   ✅ Stream iteration and replay")
     print("   ✅ Performance with large streams")
+    print("   ✅ Real model streaming (with API)")
+    print("   ✅ Real agent streaming (with tools)")
     print("   ✅ Real-world chat simulation")
 
 
