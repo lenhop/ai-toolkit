@@ -27,13 +27,42 @@ import sys
 import time
 import asyncio
 from typing import List, Dict, Any
+from pathlib import Path
 
 # Add the project root to the path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
+env_path = project_root / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+    print(f"✅ Loaded environment variables from {env_path}")
+else:
+    print(f"⚠️  No .env file found at {env_path}")
 
 from ai_toolkit.streaming import StreamHandler, StreamCallback
 from ai_toolkit.streaming.stream_callback import BufferedStreamCallback, MultiStreamCallback
 from ai_toolkit.models import ModelManager
+
+
+def check_api_keys():
+    """Check which API keys are available."""
+    keys = {
+        'DEEPSEEK_API_KEY': os.getenv('DEEPSEEK_API_KEY'),
+        'QWEN_API_KEY': os.getenv('QWEN_API_KEY'),
+        'GLM_API_KEY': os.getenv('GLM_API_KEY'),
+    }
+    
+    available = {k: v for k, v in keys.items() if v and not v.startswith('your_')}
+    
+    if available:
+        print(f"🔑 Available API keys: {', '.join(available.keys())}")
+    else:
+        print("⚠️  No API keys found in environment")
+    
+    return available
 
 
 def basic_streaming_example():
@@ -453,18 +482,27 @@ def real_model_streaming_example():
         # Initialize model manager
         manager = ModelManager()
         
-        # Try to create a model from environment
-        # This will use the first available API key (DeepSeek, Qwen, or GLM)
+        # Try to create a model using environment variables
+        # ModelManager will automatically use env vars for API keys
         model = None
         model_name = None
         
         for provider in ['deepseek', 'qwen', 'glm']:
             try:
-                model = manager.create_model_from_env(provider)
+                # Check if API key exists for this provider
+                api_key_var = f"{provider.upper()}_API_KEY"
+                api_key = os.getenv(api_key_var)
+                
+                if not api_key or api_key.startswith('your_'):
+                    continue
+                
+                # Try to create model
+                model = manager.create_model(provider)
                 model_name = provider
                 print(f"✅ Using {provider.upper()} model for streaming")
                 break
             except Exception as e:
+                print(f"⚠️  Failed to create {provider} model: {e}")
                 continue
         
         if model is None:
@@ -493,23 +531,27 @@ def real_model_streaming_example():
         callback = RealTimeCallback(stream_handler=handler, verbose=False)
         
         # Test streaming with a simple prompt
-        print(f"\n👤 User: Tell me a short joke about programming")
+        print(f"\n� User: Tell me a short joke about programming")
         print(f"🤖 AI ({model_name}): ", end="", flush=True)
         
-        # Stream the response
-        response = model.stream("Tell me a short joke about programming", callbacks=[callback])
+        # Stream the response using config
+        from langchain_core.runnables import RunnableConfig
+        config = RunnableConfig(callbacks=[callback])
         
-        # Consume the stream
-        for chunk in response:
+        # Use stream with config for callback support
+        for chunk in model.stream("Tell me a short joke about programming", config=config):
             pass  # Callback handles display
         
         # Get statistics
         stats = handler.get_statistics()
-        print(f"\n📊 Streaming stats: {stats['chunk_count']} chunks, {stats['characters_per_second']:.1f} chars/s")
+        if stats:
+            print(f"\n📊 Streaming stats: {stats['chunk_count']} chunks, {stats['characters_per_second']:.1f} chars/s")
         
     except Exception as e:
         print(f"❌ Error in real model streaming: {e}")
         print("   Make sure you have valid API keys configured.")
+        import traceback
+        traceback.print_exc()
 
 
 def real_agent_streaming_example():
@@ -518,8 +560,8 @@ def real_agent_streaming_example():
     print("=" * 50)
     
     try:
-        from langchain.agents import create_tool_calling_agent, AgentExecutor
-        from langchain_core.prompts import ChatPromptTemplate
+        from langchain.agents import AgentExecutor, create_react_agent
+        from langchain_core.prompts import PromptTemplate
         from langchain.tools import tool
         
         # Initialize model manager
@@ -531,11 +573,19 @@ def real_agent_streaming_example():
         
         for provider in ['deepseek', 'qwen', 'glm']:
             try:
-                model = manager.create_model_from_env(provider)
+                # Check if API key exists
+                api_key_var = f"{provider.upper()}_API_KEY"
+                api_key = os.getenv(api_key_var)
+                
+                if not api_key or api_key.startswith('your_'):
+                    continue
+                
+                model = manager.create_model(provider)
                 model_name = provider
                 print(f"✅ Using {provider.upper()} model for agent streaming")
                 break
-            except Exception:
+            except Exception as e:
+                print(f"⚠️  Failed to create {provider} model: {e}")
                 continue
         
         if model is None:
@@ -550,16 +600,27 @@ def real_agent_streaming_example():
         
         tools = [get_word_length]
         
-        # Create agent prompt
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a helpful assistant."),
-            ("human", "{input}"),
-            ("placeholder", "{agent_scratchpad}"),
-        ])
+        # Create agent prompt (ReAct style)
+        prompt = PromptTemplate.from_template(
+            "Answer the following questions as best you can. You have access to the following tools:\n\n"
+            "{tools}\n\n"
+            "Use the following format:\n\n"
+            "Question: the input question you must answer\n"
+            "Thought: you should always think about what to do\n"
+            "Action: the action to take, should be one of [{tool_names}]\n"
+            "Action Input: the input to the action\n"
+            "Observation: the result of the action\n"
+            "... (this Thought/Action/Action Input/Observation can repeat N times)\n"
+            "Thought: I now know the final answer\n"
+            "Final Answer: the final answer to the original input question\n\n"
+            "Begin!\n\n"
+            "Question: {input}\n"
+            "Thought:{agent_scratchpad}"
+        )
         
         # Create agent
-        agent = create_tool_calling_agent(model, tools, prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
+        agent = create_react_agent(model, tools, prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=False, handle_parsing_errors=True)
         
         # Create streaming callback
         handler = StreamHandler()
@@ -604,6 +665,8 @@ def real_agent_streaming_example():
         print(f"⚠️  Missing dependencies for agent example: {e}")
     except Exception as e:
         print(f"❌ Error in agent streaming: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 def real_world_example():
@@ -672,6 +735,10 @@ def run_all_examples():
     """Run all streaming examples."""
     print("🎯 AI Toolkit Streaming Examples")
     print("=" * 60)
+    
+    # Check API keys
+    check_api_keys()
+    print()
     
     examples = [
         basic_streaming_example,
