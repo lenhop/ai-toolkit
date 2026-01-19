@@ -1,381 +1,337 @@
 """
-Model manager for handling multiple AI models and providers.
+Simplified Model Manager - Single file for all model operations.
 
-This module provides centralized management for AI models and providers,
-including model creation, caching, and configuration management.
+Supports OpenAI-compatible models and native SDKs for non-compatible ones.
 
-Classes:
-    ModelManager: Central manager for AI models and providers
-        - Handles model creation, caching, and configuration
-        - Supports multiple providers (DeepSeek, Qwen, GLM)
-        - Loads configuration from YAML files or environment variables
-        
-        Public Methods:
-            __init__(config_path): Initialize model manager with optional config
-            load_config(config_path): Load configuration from YAML file
-            create_model(provider_name, model_name, **kwargs): Create a model instance
-            get_model(provider_name, model_name): Get cached model instance
-            list_models(): List all available models
-            list_providers(): List all available providers
-            remove_model(provider_name, model_name): Remove cached model
-            clear_cache(): Clear all cached models
-            get_model_info(provider_name, model_name): Get detailed model information
-        
-        Private Methods:
-            _load_default_config(): Load default configuration from config files
-            _load_model_config(provider_name, config_data): Load model configuration
-            _load_provider_config(provider_name, config_data): Load provider configuration
-            _expand_env_vars(config_data): Expand environment variables in config
 """
 
-from typing import Dict, List, Optional, Any, Union
-from pathlib import Path
-import yaml
-import logging
+import os
+from typing import Dict, Optional, Any
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
+from langchain_core.outputs import ChatGeneration, ChatResult
 
-from langchain_core.language_models.base import BaseLanguageModel
+try:
+    from langchain_openai import ChatOpenAI
+except ImportError:
+    from langchain_community.chat_models import ChatOpenAI
 
-from .model_config import ModelConfig, ProviderConfig, load_config_from_env
-from .model_providers import BaseModelProvider, create_provider, get_provider_class
-
-
-logger = logging.getLogger(__name__)
+from zhipuai import ZhipuAI
 
 
 class ModelManager:
     """
-    Central manager for AI models and providers.
+    Simplified model manager - handles all providers in one place.
     
-    Handles model creation, caching, and configuration management.
+    Pre-configured providers (with defaults):
+        - deepseek: OpenAI-compatible
+        - qwen: OpenAI-compatible  
+        - glm: Native SDK (zhipuai)
+    
+    Custom providers:
+        For providers not in the pre-configured list, you must provide:
+        - api_key: API key (required)
+        - model: Model name (required)
+        - base_url: Base URL for API (required for OpenAI-compatible)
+        - openai_compatible: Whether provider is OpenAI-compatible (default: True)
     """
     
-    def __init__(self, config_path: Optional[Union[str, Path]] = None):
-        """
-        Initialize model manager.
-        
-        Args:
-            config_path: Path to configuration file (optional)
-        """
-        self._models: Dict[str, BaseLanguageModel] = {}
-        self._providers: Dict[str, BaseModelProvider] = {}
-        self._configs: Dict[str, ModelConfig] = {}
-        self._provider_configs: Dict[str, ProviderConfig] = {}
-        
-        # Load configuration
-        if config_path:
-            self.load_config(config_path)
-        else:
-            self._load_default_config()
+    # Pre-configured provider configurations
+    PROVIDERS = {
+        'deepseek': {
+            'base_url': 'https://api.deepseek.com',
+            'default_model': 'deepseek-chat',
+            'openai_compatible': True
+        },
+        'qwen': {
+            'base_url': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+            'default_model': 'qwen-turbo',
+            'openai_compatible': True
+        },
+        'glm': {
+            'base_url': 'https://open.bigmodel.cn/api/paas/v4',
+            'default_model': 'glm-4',
+            'openai_compatible': False
+        }
+    }
     
-    def _load_default_config(self) -> None:
-        """Load default configuration from config files."""
-        try:
-            # Try to load from default config paths
-            config_paths = [
-                Path("config/config.yaml"),
-                Path("config/models.yaml"),
-                Path("../config/config.yaml"),
-                Path("../config/models.yaml"),
-            ]
-            
-            for config_path in config_paths:
-                if config_path.exists():
-                    self.load_config(config_path)
-                    break
-            else:
-                logger.warning("No configuration file found, using environment variables only")
-                
-        except Exception as e:
-            logger.warning(f"Failed to load default configuration: {e}")
+    def __init__(self):
+        """Initialize model manager with empty cache."""
+        self._cache: Dict[str, BaseChatModel] = {}
     
-    def load_config(self, config_path: Union[str, Path]) -> None:
-        """
-        Load configuration from YAML file.
-        
-        Args:
-            config_path: Path to configuration file
-        """
-        config_path = Path(config_path)
-        
-        if not config_path.exists():
-            raise FileNotFoundError(f"Configuration file not found: {config_path}")
-        
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config_data = yaml.safe_load(f)
-            
-            # Load model configurations
-            if 'models' in config_data:
-                for provider_name, model_config in config_data['models'].items():
-                    self._load_model_config(provider_name, model_config)
-            
-            # Load provider configurations
-            if 'providers' in config_data:
-                for provider_name, provider_config in config_data['providers'].items():
-                    self._load_provider_config(provider_name, provider_config)
-                    
-            logger.info(f"Configuration loaded from {config_path}")
-            
-        except Exception as e:
-            raise ValueError(f"Failed to load configuration from {config_path}: {e}")
-    
-    def _load_model_config(self, provider_name: str, config_data: Dict[str, Any]) -> None:
-        """Load model configuration for a provider."""
-        try:
-            # Expand environment variables in config
-            expanded_config = self._expand_env_vars(config_data)
-            
-            config = ModelConfig(**expanded_config)
-            self._configs[provider_name] = config
-            
-        except Exception as e:
-            logger.error(f"Failed to load model config for {provider_name}: {e}")
-    
-    def _load_provider_config(self, provider_name: str, config_data: Dict[str, Any]) -> None:
-        """Load provider configuration."""
-        try:
-            config = ProviderConfig(name=provider_name, **config_data)
-            self._provider_configs[provider_name] = config
-            
-        except Exception as e:
-            logger.error(f"Failed to load provider config for {provider_name}: {e}")
-    
-    def _expand_env_vars(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Expand environment variables in configuration."""
-        import os
-        import re
-        
-        expanded = {}
-        for key, value in config_data.items():
-            if isinstance(value, str) and value.startswith('${') and value.endswith('}'):
-                # Extract environment variable name
-                env_var = value[2:-1]
-                expanded[key] = os.getenv(env_var, value)
-            else:
-                expanded[key] = value
-        
-        return expanded
-    
-    def create_model(self, provider_name: str, model_name: Optional[str] = None, **kwargs) -> BaseLanguageModel:
+    def create_model(
+        self,
+        provider: str,
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        openai_compatible: Optional[bool] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        **kwargs
+    ) -> BaseChatModel:
         """
         Create a model instance.
         
         Args:
-            provider_name: Name of the provider ('deepseek', 'qwen', 'glm')
-            model_name: Specific model name (optional, uses default if not provided)
-            **kwargs: Additional configuration parameters
+            provider: Provider name (pre-configured: 'deepseek', 'qwen', 'glm', or any custom provider)
+            model: Model name (required for custom providers, optional for pre-configured)
+            api_key: API key (required for custom providers, optional for pre-configured - loads from env)
+            base_url: Base URL for API (required for custom providers if openai_compatible=True)
+            openai_compatible: Whether provider is OpenAI-compatible (default: True for custom providers)
+            temperature: Sampling temperature (0.0-2.0)
+            max_tokens: Maximum tokens in response
+            **kwargs: Additional parameters passed to model constructor
             
         Returns:
-            Model instance
+            Model instance ready to use
             
-        Raises:
-            ValueError: If provider is not supported or configuration is invalid
+        Example:
+            >>> manager = ModelManager()
+            >>> # Pre-configured provider - auto-load from environment
+            >>> model = manager.create_model("deepseek")
+            >>> # Pre-configured provider - with API key
+            >>> model = manager.create_model("deepseek", api_key="sk-...")
+            >>> # Custom OpenAI-compatible provider
+            >>> model = manager.create_model(
+            ...     "custom_provider",
+            ...     model="custom-model",
+            ...     api_key="sk-...",
+            ...     base_url="https://api.custom.com"
+            ... )
+            >>> # Custom provider with explicit compatibility flag
+            >>> model = manager.create_model(
+            ...     "another_provider",
+            ...     model="model-name",
+            ...     api_key="key-...",
+            ...     base_url="https://api.example.com",
+            ...     openai_compatible=True
+            ... )
         """
-        provider_name = provider_name.lower()
+        provider = provider.lower()
         
-        # Get or create configuration
-        if provider_name in self._configs:
-            config = self._configs[provider_name]
-            # Override model name if provided
-            if model_name:
-                config = config.copy(update={'model': model_name})
+        # Check if provider is pre-configured
+        is_preconfigured = provider in self.PROVIDERS
+        
+        if is_preconfigured:
+            # Use pre-configured settings
+            config = self.PROVIDERS[provider]
+            model_name = model or config['default_model']
+            provider_base_url = config['base_url']
+            provider_openai_compatible = config['openai_compatible']
+            
+            # Load API key from parameter or environment
+            if api_key is None:
+                api_key = os.getenv(f"{provider.upper()}_API_KEY")
+            
+            if not api_key:
+                raise ValueError(
+                    f"Missing API key. Provide api_key parameter or set "
+                    f"{provider.upper()}_API_KEY environment variable"
+                )
         else:
-            # Try to load from environment variables
-            try:
-                config = load_config_from_env(provider_name)
-                if model_name:
-                    config = config.copy(update={'model': model_name})
-                self._configs[provider_name] = config
-            except Exception as e:
-                raise ValueError(f"Failed to create configuration for {provider_name}: {e}")
+            # Custom provider - validate required parameters
+            if not api_key:
+                # Try environment variable as fallback
+                api_key = os.getenv(f"{provider.upper()}_API_KEY")
+                if not api_key:
+                    raise ValueError(
+                        f"Missing API key for custom provider '{provider}'. "
+                        f"Provide api_key parameter or set {provider.upper()}_API_KEY environment variable"
+                    )
+            
+            if not model:
+                raise ValueError(
+                    f"Missing model name for custom provider '{provider}'. "
+                    f"Model name is required for custom providers."
+                )
+            model_name = model
+            
+            # For custom providers, base_url is required if OpenAI-compatible
+            if openai_compatible is None:
+                # Default to True for custom providers
+                provider_openai_compatible = True
+            else:
+                provider_openai_compatible = openai_compatible
+            
+            if provider_openai_compatible:
+                if not base_url:
+                    raise ValueError(
+                        f"Missing base_url for custom OpenAI-compatible provider '{provider}'. "
+                        f"base_url is required for OpenAI-compatible providers."
+                    )
+                provider_base_url = base_url
+            else:
+                # For non-OpenAI-compatible custom providers, base_url is optional
+                # (may be used for other purposes or not needed)
+                provider_base_url = base_url
         
-        # Apply additional parameters
-        if kwargs:
-            config = config.copy(update=kwargs)
+        # Create cache key
+        cache_key = f"{provider}:{model_name}"
         
-        # Create provider and model
-        try:
-            provider = create_provider(provider_name, config)
-            model = provider.create_model()
-            
-            # Cache the model
-            cache_key = f"{provider_name}:{config.model}"
-            self._models[cache_key] = model
-            self._providers[cache_key] = provider
-            
-            logger.info(f"Created model: {cache_key}")
-            return model
-            
-        except Exception as e:
-            raise ValueError(f"Failed to create model for {provider_name}: {e}")
+        # Return cached model if exists
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+        
+        # Create model based on compatibility
+        if provider_openai_compatible:
+            # Use OpenAI-compatible interface
+            model_instance = ChatOpenAI(
+                api_key=api_key,
+                base_url=provider_base_url,
+                model=model_name,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                **kwargs
+            )
+        else:
+            # Use native SDK (currently only GLM is supported)
+            if provider == 'glm':
+                model_instance = GLMChatModel(
+                    api_key=api_key,
+                    model=model_name,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    **kwargs
+                )
+            else:
+                raise ValueError(
+                    f"Native SDK not implemented for provider '{provider}'. "
+                    f"Only 'glm' provider supports native SDK. "
+                    f"For other providers, set openai_compatible=True and provide base_url."
+                )
+        
+        # Cache and return
+        self._cache[cache_key] = model_instance
+        return model_instance
     
-    def get_model(self, provider_name: str, model_name: Optional[str] = None) -> Optional[BaseLanguageModel]:
+    def get_model(self, provider: str, model: Optional[str] = None) -> Optional[BaseChatModel]:
         """
         Get cached model instance.
         
         Args:
-            provider_name: Name of the provider
-            model_name: Specific model name (optional)
+            provider: Provider name
+            model: Model name (optional)
             
         Returns:
-            Model instance if cached, None otherwise
+            Cached model or None
         """
-        if model_name:
-            cache_key = f"{provider_name.lower()}:{model_name}"
+        provider = provider.lower()
+        if model:
+            cache_key = f"{provider}:{model}"
         else:
             # Find first model for this provider
-            for key in self._models.keys():
-                if key.startswith(f"{provider_name.lower()}:"):
-                    cache_key = key
-                    break
-            else:
-                return None
-        
-        return self._models.get(cache_key)
-    
-    def list_models(self) -> List[Dict[str, str]]:
-        """
-        List all available models.
-        
-        Returns:
-            List of model information dictionaries
-        """
-        models = []
-        
-        # Add cached models
-        for cache_key, model in self._models.items():
-            provider_name, model_name = cache_key.split(':', 1)
-            models.append({
-                'provider': provider_name,
-                'model': model_name,
-                'status': 'cached',
-                'type': model._llm_type if hasattr(model, '_llm_type') else 'unknown'
-            })
-        
-        # Add configured but not cached models
-        for provider_name, config in self._configs.items():
-            cache_key = f"{provider_name}:{config.model}"
-            if cache_key not in self._models:
-                models.append({
-                    'provider': provider_name,
-                    'model': config.model,
-                    'status': 'configured',
-                    'type': 'chat'
-                })
-        
-        # Add supported models from provider configs
-        for provider_name, provider_config in self._provider_configs.items():
-            for model_name in provider_config.supported_models:
-                cache_key = f"{provider_name}:{model_name}"
-                if not any(m['provider'] == provider_name and m['model'] == model_name for m in models):
-                    models.append({
-                        'provider': provider_name,
-                        'model': model_name,
-                        'status': 'available',
-                        'type': 'chat'
-                    })
-        
-        return models
-    
-    def list_providers(self) -> List[str]:
-        """
-        List all available providers.
-        
-        Returns:
-            List of provider names
-        """
-        providers = set()
-        
-        # Add configured providers
-        providers.update(self._configs.keys())
-        providers.update(self._provider_configs.keys())
-        
-        # Add hardcoded supported providers
-        providers.update(['deepseek', 'qwen', 'glm'])
-        
-        return sorted(list(providers))
-    
-    def remove_model(self, provider_name: str, model_name: Optional[str] = None) -> bool:
-        """
-        Remove cached model instance.
-        
-        Args:
-            provider_name: Name of the provider
-            model_name: Specific model name (optional)
-            
-        Returns:
-            True if model was removed, False if not found
-        """
-        if model_name:
-            cache_key = f"{provider_name.lower()}:{model_name}"
-        else:
-            # Find first model for this provider
-            for key in list(self._models.keys()):
-                if key.startswith(f"{provider_name.lower()}:"):
-                    cache_key = key
-                    break
-            else:
-                return False
-        
-        if cache_key in self._models:
-            del self._models[cache_key]
-            if cache_key in self._providers:
-                del self._providers[cache_key]
-            logger.info(f"Removed model: {cache_key}")
-            return True
-        
-        return False
-    
-    def clear_cache(self) -> None:
-        """Clear all cached models."""
-        self._models.clear()
-        self._providers.clear()
-        logger.info("Cleared model cache")
-    
-    def get_model_info(self, provider_name: str, model_name: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """
-        Get detailed information about a model.
-        
-        Args:
-            provider_name: Name of the provider
-            model_name: Specific model name (optional)
-            
-        Returns:
-            Model information dictionary
-        """
-        cache_key = f"{provider_name.lower()}:{model_name}" if model_name else None
-        
-        if not cache_key:
-            # Find first model for this provider
-            for key in self._models.keys():
-                if key.startswith(f"{provider_name.lower()}:"):
-                    cache_key = key
-                    break
-        
-        if not cache_key:
+            for key in self._cache.keys():
+                if key.startswith(f"{provider}:"):
+                    return self._cache[key]
             return None
         
-        info = {
-            'provider': provider_name.lower(),
-            'model': model_name or cache_key.split(':', 1)[1],
-            'cached': cache_key in self._models,
+        return self._cache.get(cache_key)
+    
+    def list_providers(self) -> list:
+        """
+        List pre-configured providers.
+        
+        Note: Custom providers can be used even if not listed here.
+        They just require explicit parameters when creating models.
+        
+        Returns:
+            List of pre-configured provider names
+        """
+        return list(self.PROVIDERS.keys())
+    
+    def clear_cache(self):
+        """Clear all cached models."""
+        self._cache.clear()
+
+
+class GLMChatModel(BaseChatModel):
+    """
+    LangChain wrapper for GLM models using native zhipuai SDK.
+    
+    GLM doesn't support OpenAI format well, so we use their native SDK.
+    """
+    
+    api_key: str
+    model: str = "glm-4"
+    temperature: float = 0.7
+    max_tokens: int = 4096
+    client: Any = None
+    
+    class Config:
+        """Pydantic config."""
+        arbitrary_types_allowed = True
+    
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "glm-4",
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        **kwargs
+    ):
+        """Initialize GLM model."""
+        super().__init__(
+            api_key=api_key,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            client=ZhipuAI(api_key=api_key),
+            **kwargs
+        )
+    
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        """Generate response using GLM API."""
+        # Convert LangChain messages to GLM format
+        glm_messages = []
+        for msg in messages:
+            if isinstance(msg, AIMessage):
+                role = 'assistant'
+            elif isinstance(msg, SystemMessage):
+                role = 'system'
+            else:
+                role = 'user'
+            
+            glm_messages.append({
+                'role': role,
+                'content': str(msg.content)
+            })
+        
+        # Call GLM API
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=glm_messages,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            **kwargs
+        )
+        
+        # Convert to LangChain format
+        content = response.choices[0].message.content
+        message = AIMessage(content=content)
+        generation = ChatGeneration(message=message)
+        
+        return ChatResult(generations=[generation])
+    
+    async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
+        """Async generate (wraps sync for now)."""
+        import asyncio
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            lambda: self._generate(messages, stop, run_manager, **kwargs)
+        )
+    
+    @property
+    def _llm_type(self) -> str:
+        """Return model type."""
+        return "glm-chat"
+    
+    @property
+    def _identifying_params(self) -> Dict[str, Any]:
+        """Return identifying parameters."""
+        return {
+            "model": self.model,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
         }
-        
-        # Add configuration info
-        if provider_name.lower() in self._configs:
-            config = self._configs[provider_name.lower()]
-            info.update({
-                'temperature': config.temperature,
-                'max_tokens': config.max_tokens,
-                'base_url': config.base_url,
-            })
-        
-        # Add provider info
-        if provider_name.lower() in self._provider_configs:
-            provider_config = self._provider_configs[provider_name.lower()]
-            info.update({
-                'supported_models': provider_config.supported_models,
-                'pricing': provider_config.pricing,
-            })
-        
-        return info

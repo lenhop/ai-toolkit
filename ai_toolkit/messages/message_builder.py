@@ -10,12 +10,14 @@ Overview:
 
 Key Classes:
     - MessageBuilder: Fluent interface for building message lists
-    
-Key Functions:
-    - create_system_message(): Create a SystemMessage
-    - create_human_message(): Create a HumanMessage
-    - create_ai_message(): Create an AIMessage
-    - create_tool_message(): Create a ToolMessage
+
+Key Methods:
+    - add_system(): Add a SystemMessage
+    - add_human(): Add a HumanMessage
+    - add_ai(): Add an AIMessage
+    - add_tool(): Add a ToolMessage
+    - add_conversation(): Add multiple human-AI exchanges
+    - build(): Return the constructed message list
 
 Features:
     - Fluent interface with method chaining
@@ -24,11 +26,19 @@ Features:
     - Utility methods for message management
     - Type-safe message construction
 
+Usage Example:
+    >>> builder = MessageBuilder()
+    >>> messages = (builder
+    ...     .add_system("You are a helpful assistant")
+    ...     .add_human("Hello!")
+    ...     .add_ai("Hi! How can I help?")
+    ...     .build())
+
 Official Documentation:
     https://docs.langchain.com/oss/python/langchain/messages
 
 Author: AI Toolkit Team
-Version: 1.0.0
+Version: 2.0.0
 """
 
 from typing import List, Dict, Any, Optional, Tuple
@@ -267,15 +277,6 @@ class MessageBuilder:
         """
         return len(self._messages)
     
-    def get_last(self) -> Optional[BaseMessage]:
-        """
-        Get the last message in the builder.
-        
-        Returns:
-            Last message or None if empty
-        """
-        return self._messages[-1] if self._messages else None
-    
     def __len__(self) -> int:
         """Get the number of messages."""
         return len(self._messages)
@@ -283,76 +284,3 @@ class MessageBuilder:
     def __repr__(self) -> str:
         """String representation of the builder."""
         return f"MessageBuilder(messages={len(self._messages)})"
-
-
-def create_system_message(content: str, **kwargs) -> SystemMessage:
-    """
-    Create a SystemMessage.
-    
-    Args:
-        content: The system message content
-        **kwargs: Additional message attributes
-    
-    Returns:
-        SystemMessage instance
-    
-    Example:
-        >>> msg = create_system_message("You are a helpful assistant")
-    """
-    return SystemMessage(content=content, **kwargs)
-
-
-def create_human_message(content: str, **kwargs) -> HumanMessage:
-    """
-    Create a HumanMessage.
-    
-    Args:
-        content: The user message content
-        **kwargs: Additional message attributes
-    
-    Returns:
-        HumanMessage instance
-    
-    Example:
-        >>> msg = create_human_message("What is 2 + 2?")
-    """
-    return HumanMessage(content=content, **kwargs)
-
-
-def create_ai_message(content: str, **kwargs) -> AIMessage:
-    """
-    Create an AIMessage.
-    
-    Args:
-        content: The AI response content
-        **kwargs: Additional message attributes
-    
-    Returns:
-        AIMessage instance
-    
-    Example:
-        >>> msg = create_ai_message("2 + 2 equals 4")
-    """
-    return AIMessage(content=content, **kwargs)
-
-
-def create_tool_message(
-    content: str,
-    tool_call_id: str,
-    **kwargs
-) -> ToolMessage:
-    """
-    Create a ToolMessage.
-    
-    Args:
-        content: The tool execution result
-        tool_call_id: ID of the tool call
-        **kwargs: Additional message attributes
-    
-    Returns:
-        ToolMessage instance
-    
-    Example:
-        >>> msg = create_tool_message("Result: 42", tool_call_id="call_123")
-    """
-    return ToolMessage(content=content, tool_call_id=tool_call_id, **kwargs)

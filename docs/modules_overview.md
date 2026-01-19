@@ -350,26 +350,14 @@ The Streaming Processing toolkit handles real-time streaming output from AI mode
 - Statistics tracking
 - Iterator support
 
-#### 2. `stream_callback.py`
-**Purpose:** LangChain-compatible streaming callbacks.
+**Note:** For streaming callbacks, use LangChain's native `BaseCallbackHandler` directly:
+```python
+from langchain_core.callbacks import BaseCallbackHandler
 
-**Key Classes:**
-- `StreamCallback`: Base streaming callback
-  - `on_llm_start()`: Called when LLM starts
-  - `on_llm_new_token(token)`: Called for each token
-  - `on_llm_end(response)`: Called when LLM ends
-  - `on_llm_error(error)`: Called on error
-  - `get_accumulated_content()`: Get accumulated output
-  - `get_session_statistics()`: Get session stats
-- `MultiStreamCallback`: Multiple callback handler
-- `BufferedStreamCallback`: Buffered streaming with batch processing
-  - `flush_buffer()`: Flush buffered tokens
-
-**Features:**
-- LangChain integration
-- Token-by-token processing
-- Buffering support
-- Error handling
+class MyCallback(BaseCallbackHandler):
+    def on_llm_new_token(self, token: str, **kwargs):
+        print(token, end='', flush=True)
+```
 
 ---
 
@@ -729,7 +717,7 @@ from ai_toolkit.prompts import PromptManager, ChatPromptTemplate
 from ai_toolkit.parsers import ParserManager, JsonOutputParser
 
 # Streaming
-from ai_toolkit.streaming import StreamHandler, StreamCallback
+from ai_toolkit.streaming import StreamHandler
 
 # Errors
 from ai_toolkit.errors import ErrorHandler, RetryManager, AIException

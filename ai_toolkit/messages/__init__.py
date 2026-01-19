@@ -8,32 +8,23 @@ This module provides utilities for working with LangChain message types:
 - ToolMessage: Tool execution results
 
 Overview:
-    The Message Toolkit provides four main components for managing LangChain
-    messages: MessageBuilder for construction, MessageFormatter for display,
-    MessageValidator for validation, and MessageConverter for format conversion.
+    The Message Toolkit provides MessageBuilder for constructing message lists
+    with a clean, fluent API. For validation and conversion, use LangChain's
+    native capabilities directly.
 
 Components:
     - MessageBuilder: Fluent interface for building message lists
-    - MessageFormatter: Display and format messages in various styles
-    - MessageValidator: Validate message structures and flows
-    - MessageConverter: Convert between different message formats
 
 Features:
     - Clean, fluent API for message construction
-    - Multiple display styles with emoji icons
-    - Comprehensive validation with error messages
-    - Format conversion (dict, OpenAI, string)
-    - Message statistics and analysis
-    - Type-safe operations
-    - Full support for all LangChain message types
+    - Support for all LangChain message types
+    - Method chaining for readable code
+    - Conversation building utilities
 
 Use Cases:
     - Building agent conversations
-    - Validating user input
-    - Converting for API calls
-    - Debugging message flows
-    - Analyzing conversation statistics
-    - Format transformation
+    - Constructing message histories
+    - Creating multi-turn dialogues
 
 Official Documentation:
     https://docs.langchain.com/oss/python/langchain/messages
@@ -42,17 +33,11 @@ Example:
     See examples/4.message_toolkit_guide.py for comprehensive demonstrations.
 
 Author: AI Toolkit Team
-Version: 1.0.0
+Version: 2.0.0
 """
 
 from .message_builder import MessageBuilder
-from .message_formatter import MessageFormatter
-from .message_validator import MessageValidator
-from .message_converter import MessageConverter
 
 __all__ = [
     'MessageBuilder',
-    'MessageFormatter',
-    'MessageValidator',
-    'MessageConverter',
 ]

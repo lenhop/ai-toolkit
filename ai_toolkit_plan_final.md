@@ -124,10 +124,8 @@
 | | `handle_stream()` | 处理流式输出 |
 | | `format_chunk()` | 格式化流式数据块 |
 | | `aggregate_stream()` | 聚合流式输出 |
-| `stream_callback.py` | `StreamCallback` | 流式回调处理器 |
-| | `on_chunk()` | 处理单个数据块 |
-| | `on_complete()` | 流式输出完成回调 |
-| | `on_error()` | 流式输出错误回调 |
+
+**注意**: 流式回调请直接使用 LangChain 的 `BaseCallbackHandler`
 
 **高级工具包（可选）**
 
@@ -589,37 +587,37 @@ touch tests/test_parsers/test_output_parser.py
 
 **任务清单**：
 1. 实现StreamHandler类
-2. 实现StreamCallback类
-3. 集成LangChain流式输出功能
+2. 集成LangChain流式输出功能
 
 **具体执行**：
 
 ```bash
 # 1. 创建流式处理模块文件
-touch ai_toolkit/streaming/{__init__.py,stream_handler.py,stream_callback.py}
+touch ai_toolkit/streaming/{__init__.py,stream_handler.py}
 
 # 2. 实现stream_handler.py
 # 实现handle_stream()：处理流式输出
 # 实现format_chunk()：格式化数据块
 # 实现aggregate_stream()：聚合流式输出为完整文本
 
-# 3. 实现stream_callback.py
-# 实现StreamCallback类：继承langchain的BaseCallbackHandler
-# 实现on_chunk()：处理单个数据块
-# 实现on_complete()：流式输出完成回调
-# 实现on_error()：错误回调
+# 3. 流式回调使用 LangChain 的 BaseCallbackHandler
+# 用户可以直接继承 langchain_core.callbacks.BaseCallbackHandler
 
 # 4. 编写示例代码
 cat > examples/streaming_example.py << EOF
 from ai_toolkit.models import ModelManager
 from ai_toolkit.streaming import StreamHandler
+from langchain_core.callbacks import BaseCallbackHandler
 
 manager = ModelManager()
 model = manager.create_model("deepseek")
 
-handler = StreamHandler()
-for chunk in model.stream("你好"):
-    handler.handle_stream(chunk)
+class PrintCallback(BaseCallbackHandler):
+    def on_llm_new_token(self, token: str, **kwargs):
+        print(token, end='', flush=True)
+
+callback = PrintCallback()
+model.invoke("你好", config={"callbacks": [callback]})
 EOF
 
 # 5. 编写单元测试
@@ -628,7 +626,6 @@ touch tests/test_streaming/test_stream_handler.py
 
 **验收标准**：
 - [ ] StreamHandler类实现完成
-- [ ] StreamCallback类实现完成
 - [ ] 流式输出处理功能正常
 - [ ] 示例代码运行成功
 - [ ] 单元测试通过

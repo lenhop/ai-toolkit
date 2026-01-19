@@ -442,40 +442,19 @@ stateDiagram-v2
     Statistics --> [*]
 ```
 
-### 5.2 StreamCallback Integration
-
-```mermaid
-sequenceDiagram
-    participant LLM
-    participant StreamCallback
-    participant StreamHandler
-    participant App
-    
-    LLM->>StreamCallback: on_llm_start()
-    StreamCallback->>StreamHandler: start_session()
-    StreamHandler-->>StreamCallback: session_id
-    
-    loop For each token
-        LLM->>StreamCallback: on_llm_new_token(token)
-        StreamCallback->>StreamHandler: handle_stream(token)
-        StreamHandler->>StreamHandler: Aggregate content
-        StreamCallback->>App: on_chunk_callback(chunk)
-    end
-    
-    LLM->>StreamCallback: on_llm_end()
-    StreamCallback->>StreamHandler: end_session()
-    StreamHandler->>StreamHandler: Calculate statistics
-    StreamCallback->>App: on_complete_callback(final_content)
-```
+### 5.2 StreamHandler Usage with LangChain
 
 **Example:**
 ```python
+from ai_toolkit.streaming import StreamHandler
+from langchain_core.callbacks import BaseCallbackHandler
+
 handler = StreamHandler()
-callback = StreamCallback(
-    stream_handler=handler,
-    on_chunk_callback=lambda chunk: print(chunk.content, end=''),
-    on_complete_callback=lambda text: print(f"\n\nTotal: {len(text)} chars")
-)
+
+# Use StreamHandler directly with LangChain's BaseCallbackHandler
+class MyStreamCallback(BaseCallbackHandler):
+    def on_llm_new_token(self, token: str, **kwargs):
+        print(token, end='', flush=True)
 
 # Use with LangChain
 model.invoke(prompt, config={"callbacks": [callback]})
@@ -1081,8 +1060,9 @@ except Exception as e:
 
 ```python
 from ai_toolkit.models import ModelManager
-from ai_toolkit.streaming import StreamHandler, StreamCallback
+from ai_toolkit.streaming import StreamHandler
 from ai_toolkit.tokens import TokenCounter, TokenOptimizer
+from langchain_core.callbacks import BaseCallbackHandler
 
 # Setup
 model_manager = ModelManager()
@@ -1095,18 +1075,13 @@ optimizer = TokenOptimizer(counter)
 prompt = "Very long prompt text..."
 optimized = optimizer.compress_text(prompt)
 
-# Stream response
-handler = StreamHandler()
-callback = StreamCallback(
-    stream_handler=handler,
-    on_chunk_callback=lambda c: print(c.content, end='')
-)
+# Stream response with custom callback
+class PrintCallback(BaseCallbackHandler):
+    def on_llm_new_token(self, token: str, **kwargs):
+        print(token, end='', flush=True)
 
+callback = PrintCallback()
 model.invoke(optimized.optimized_text, config={"callbacks": [callback]})
-
-# Get statistics
-stats = handler.get_statistics()
-print(f"\nTokens: {stats['total_characters']}")
 ```
 
 ### Example 4: Complete Pipeline

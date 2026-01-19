@@ -22,8 +22,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ai_toolkit.messages.message_builder import MessageBuilder
-from ai_toolkit.messages.message_converter import MessageConverter
-from ai_toolkit.messages.message_validator import MessageValidator
 from ai_toolkit.parsers.output_parser import (
     JsonOutputParser,
     PydanticOutputParser,
@@ -41,7 +39,6 @@ from ai_toolkit.memory.memory_manager import (
     MemoryManager,
     CheckpointerFactory
 )
-from ai_toolkit.streaming.stream_callback import StreamCallback
 
 from langchain_core.messages import (
     SystemMessage,
@@ -90,89 +87,6 @@ class TestMessageBuilder(unittest.TestCase):
         self.assertEqual(len(messages), 1)
         self.assertIsInstance(messages[0], ToolMessage)
         self.assertEqual(messages[0].tool_call_id, "call_123")
-
-
-class TestMessageConverter(unittest.TestCase):
-    """Test MessageConverter functionality."""
-    
-    def test_to_dict_conversion(self):
-        """Test message to dictionary conversion."""
-        msg = HumanMessage(content="Hello!", name="Alice")
-        dict_msg = MessageConverter.to_dict(msg)
-        
-        self.assertEqual(dict_msg['role'], 'user')
-        self.assertEqual(dict_msg['content'], 'Hello!')
-        self.assertEqual(dict_msg['name'], 'Alice')
-    
-    def test_from_dict_conversion(self):
-        """Test dictionary to message conversion."""
-        data = {'role': 'user', 'content': 'Hello!', 'name': 'Alice'}
-        msg = MessageConverter.from_dict(data)
-        
-        self.assertIsInstance(msg, HumanMessage)
-        self.assertEqual(msg.content, 'Hello!')
-        self.assertEqual(msg.name, 'Alice')
-    
-    def test_tool_message_conversion(self):
-        """Test ToolMessage conversion."""
-        msg = ToolMessage(
-            content="Result: 42",
-            tool_call_id="call_123",
-            name="calculator"
-        )
-        dict_msg = MessageConverter.to_dict(msg)
-        
-        self.assertEqual(dict_msg['role'], 'tool')
-        self.assertEqual(dict_msg['tool_call_id'], 'call_123')
-        
-        # Convert back
-        restored = MessageConverter.from_dict(dict_msg)
-        self.assertIsInstance(restored, ToolMessage)
-        self.assertEqual(restored.tool_call_id, 'call_123')
-
-
-class TestMessageValidator(unittest.TestCase):
-    """Test MessageValidator functionality."""
-    
-    def test_validate_empty_message(self):
-        """Test validation of empty message."""
-        msg = HumanMessage(content="")
-        is_valid, error = MessageValidator.validate_message(msg)
-        
-        self.assertFalse(is_valid)
-        self.assertIsNotNone(error)
-    
-    def test_validate_tool_message_without_id(self):
-        """Test validation of ToolMessage without tool_call_id."""
-        # Create a ToolMessage without tool_call_id (should fail)
-        msg = ToolMessage(content="Result", tool_call_id="")
-        is_valid, error = MessageValidator.validate_message(msg)
-        
-        self.assertFalse(is_valid)
-        self.assertIn('tool_call_id', error.lower())
-    
-    def test_validate_conversation_flow(self):
-        """Test conversation flow validation."""
-        messages = [
-            SystemMessage(content="You are helpful"),
-            HumanMessage(content="Hello!"),
-            AIMessage(content="Hi!")
-        ]
-        is_valid, error = MessageValidator.validate_conversation_flow(messages)
-        
-        self.assertTrue(is_valid)
-    
-    def test_validate_multiple_system_messages(self):
-        """Test validation fails with multiple system messages."""
-        messages = [
-            SystemMessage(content="First"),
-            SystemMessage(content="Second"),
-            HumanMessage(content="Hello!")
-        ]
-        is_valid, error = MessageValidator.validate_conversation_flow(messages)
-        
-        self.assertFalse(is_valid)
-        self.assertIn('Multiple SystemMessages', error)
 
 
 class TestJsonOutputParser(unittest.TestCase):
@@ -371,29 +285,6 @@ class TestMemoryManager(unittest.TestCase):
         """Test creating in-memory checkpointer."""
         checkpointer = CheckpointerFactory.create_inmemory()
         self.assertIsNotNone(checkpointer)
-
-
-class TestStreamCallback(unittest.TestCase):
-    """Test StreamCallback functionality."""
-    
-    def test_stream_callback_initialization(self):
-        """Test StreamCallback initialization."""
-        callback = StreamCallback(verbose=False)
-        self.assertIsNotNone(callback.stream_handler)
-    
-    def test_on_chain_start_run_id_handling(self):
-        """Test that run_id is handled correctly even if not provided."""
-        callback = StreamCallback(verbose=False)
-        
-        # Call without run_id
-        callback.on_chain_start(
-            serialized={},
-            inputs={},
-            run_id=None
-        )
-        
-        # Should have generated a run_id
-        self.assertIsNotNone(callback._current_run_id)
 
 
 class TestTypeCompatibility(unittest.TestCase):
