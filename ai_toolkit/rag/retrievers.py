@@ -29,7 +29,10 @@ from langchain.tools import tool
 def create_vector_store(
     documents: List[Document],
     embeddings: Embeddings,
-    store_type: str = "inmemory"
+    store_type: str = "inmemory",
+    persist_directory: Optional[str] = None,
+    collection_name: Optional[str] = None,
+    **kwargs
 ) -> VectorStore:
     """
     Create vector store with embeddings.
@@ -39,7 +42,10 @@ def create_vector_store(
     Args:
         documents: List of document chunks to store
         embeddings: Embeddings model (e.g., DashScopeEmbeddings for Qwen)
-        store_type: Type of vector store ("inmemory" or others)
+        store_type: Type of vector store ("inmemory" | "chroma")
+        persist_directory: Persist directory for Chroma (required for store_type="chroma")
+        collection_name: Collection name for Chroma (default: "default")
+        **kwargs: Additional arguments for vector store creation
     
     Returns:
         Vector store instance
@@ -58,15 +64,24 @@ def create_vector_store(
         ...     dashscope_api_key="your-api-key"
         ... )
         >>> 
-        >>> # Create vector store
-        >>> vector_store = create_vector_store(chunks, embeddings)
+        >>> # Create in-memory vector store
+        >>> vector_store = create_vector_store(chunks, embeddings, store_type="inmemory")
+        >>> 
+        >>> # Create Chroma vector store (persistent)
+        >>> vector_store = create_vector_store(
+        ...     chunks, 
+        ...     embeddings, 
+        ...     store_type="chroma",
+        ...     persist_directory="./data/chroma",
+        ...     collection_name="ecommerce_docs"
+        ... )
         >>> 
         >>> # Search
         >>> results = vector_store.similarity_search("query", k=3)
     
     Note:
-        - InMemory: Fast, lost on restart
-        - For production, consider Chroma, Pinecone, or Weaviate
+        - InMemory: Fast, lost on restart (good for testing)
+        - Chroma: Persistent, production-ready (recommended for production)
         - Embeddings model should match your use case (language, domain)
     """
     if store_type == "inmemory":
@@ -75,8 +90,23 @@ def create_vector_store(
         vector_store = InMemoryVectorStore(embeddings)
         vector_store.add_documents(documents)
         return vector_store
+    
+    elif store_type == "chroma":
+        from ai_toolkit.chroma import create_chroma_store
+        
+        return create_chroma_store(
+            documents=documents,
+            embeddings=embeddings,
+            collection_name=collection_name or "default",
+            persist_directory=persist_directory,
+            **kwargs
+        )
+    
     else:
-        raise ValueError(f"Unknown store_type: {store_type}. Currently only 'inmemory' is supported.")
+        raise ValueError(
+            f"Unknown store_type: {store_type}. "
+            "Supported types: 'inmemory', 'chroma'"
+        )
 
 
 def create_retrieval_tool(

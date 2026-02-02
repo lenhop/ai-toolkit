@@ -12,6 +12,7 @@ Modules:
     - streaming: Streaming utilities
     - parsers: Output parsing and structured output
     - rag: RAG (Retrieval Augmented Generation) utilities
+    - chroma: Chroma vector database toolkit
     - prompts: Prompt management
     - tokens: Token counting and optimization
     - errors: Error handling and retry logic
@@ -56,6 +57,7 @@ from . import messages
 from . import streaming
 from . import parsers
 from . import rag
+from . import chroma
 from . import prompts
 from . import tokens
 from . import errors
@@ -77,6 +79,7 @@ __all__ = [
     'streaming',
     'parsers',
     'rag',
+    'chroma',
     'prompts',
     'tokens',
     'errors',
