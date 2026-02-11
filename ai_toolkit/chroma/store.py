@@ -1,18 +1,18 @@
 """
 Chroma VectorStore Wrapper
 
-Chroma VectorStore 封装模块：提供高级接口，简化使用。
+Chroma VectorStore wrapper module: provides a high-level interface and simplifies usage.
 
-核心功能：
-    - create_chroma_store(): 一步创建 VectorStore（最常用）
-    - from_documents(): 从文档直接创建
-    - load_store(): 加载已有存储
-    - ChromaStore: 高级封装类（灵活控制）
+Core features:
+    - create_chroma_store(): One-step VectorStore creation (most common)
+    - from_documents(): Create from documents directly
+    - load_store(): Load an existing store
+    - ChromaStore: High-level wrapper class (flexible control)
 
-设计理念：
-    - 所有操作返回 LangChain VectorStore 兼容对象
-    - 提供高级封装，隐藏底层细节
-    - 支持链式调用和流畅 API
+Design principles:
+    - All operations return LangChain VectorStore-compatible objects
+    - High-level encapsulation hides low-level details
+    - Supports chained calls and a fluent API
 
 Author: AI Toolkit Team
 Version: 1.0.0
@@ -29,6 +29,30 @@ from .client import create_chroma_client, get_or_create_collection
 from .utils import generate_document_ids, validate_collection_name
 
 
+def get_chroma_collection(vectorstore: Chroma) -> Any:
+    """
+    Return the underlying Chroma Collection from a LangChain Chroma VectorStore.
+
+    Use this when you need raw Chroma operations (get by ids/where/where_document,
+    query with query_embeddings, add with precomputed embeddings, delete) via
+    the chroma utils: collection_count, get_collection_items, add_to_collection,
+    query_collection, delete_from_collection.
+
+    Args:
+        vectorstore: LangChain Chroma instance (e.g. from create_chroma_store).
+
+    Returns:
+        Chroma Collection instance.
+
+    Example:
+        >>> store = create_chroma_store(documents=docs, embeddings=embeddings, ...)
+        >>> collection = get_chroma_collection(store)
+        >>> ids = get_collection_ids(collection)
+        >>> items = get_collection_items(collection, limit=5)
+    """
+    return vectorstore._collection
+
+
 def create_chroma_store(
     documents: Optional[List[Document]] = None,
     embeddings: Optional[Embeddings] = None,
@@ -38,43 +62,38 @@ def create_chroma_store(
     **kwargs
 ) -> Chroma:
     """
-    一步创建 Chroma VectorStore（最常用）
-    
-    这是最简洁的创建方式，自动处理所有细节。
-    
+    Create a Chroma VectorStore in one step (most common usage).
+
+    This is the simplest creation path; it handles all details automatically.
+
     Args:
-        documents: 文档列表（可选，可后续添加）
-        embeddings: Embeddings 模型（必需）
-        collection_name: 集合名称（默认: "default"）
-        persist_directory: 持久化目录（None 则使用内存模式）
-        client: 自定义客户端（可选，覆盖 persist_directory）
-        **kwargs: 其他 Chroma 配置参数
-    
+        documents: List of documents (optional; can be added later).
+        embeddings: Embeddings model (required).
+        collection_name: Collection name (default: "default").
+        persist_directory: Persist directory (None for in-memory mode).
+        client: Custom client (optional; overrides persist_directory).
+        **kwargs: Other Chroma configuration parameters.
+
     Returns:
-        LangChain Chroma VectorStore 实例
-    
+        LangChain Chroma VectorStore instance.
+
     Example:
         >>> from langchain_community.embeddings import DashScopeEmbeddings
         >>> from ai_toolkit.chroma import create_chroma_store
-        >>> 
-        >>> # 一步创建
+        >>>
         >>> store = create_chroma_store(
         ...     documents=chunks,
         ...     embeddings=DashScopeEmbeddings(...),
         ...     collection_name="ecommerce_docs",
         ...     persist_directory="./data/chroma"
         ... )
-        >>> 
-        >>> # 直接使用 LangChain API
         >>> results = store.similarity_search("query", k=5)
     """
     if embeddings is None:
         raise ValueError("embeddings is required")
-    
-    # 验证集合名称
+
     validate_collection_name(collection_name)
-    
-    # 创建或获取客户端
+
     if client is None:
         if persist_directory:
             client = create_chroma_client(
@@ -83,16 +102,14 @@ def create_chroma_store(
             )
         else:
             client = create_chroma_client(mode="memory")
-    
-    # 创建 VectorStore
+
     vectorstore = Chroma(
         collection_name=collection_name,
         embedding_function=embeddings,
         client=client,
         **kwargs
     )
-    
-    # 如果有文档，添加文档
+
     if documents:
         vectorstore.add_documents(documents)
     
@@ -107,20 +124,20 @@ def from_documents(
     **kwargs
 ) -> Chroma:
     """
-    从文档直接创建 VectorStore（便捷方法）
-    
-    这是 create_chroma_store() 的便捷别名，明确表示从文档创建。
-    
+    Create a VectorStore directly from documents (convenience method).
+
+    Convenience alias for create_chroma_store() that makes document-based creation explicit.
+
     Args:
-        documents: 文档列表（必需）
-        embeddings: Embeddings 模型（必需）
-        collection_name: 集合名称
-        persist_directory: 持久化目录
-        **kwargs: 其他配置参数
-    
+        documents: List of documents (required).
+        embeddings: Embeddings model (required).
+        collection_name: Collection name.
+        persist_directory: Persist directory.
+        **kwargs: Other configuration parameters.
+
     Returns:
-        LangChain Chroma VectorStore 实例
-    
+        LangChain Chroma VectorStore instance.
+
     Example:
         >>> store = from_documents(
         ...     documents=chunks,
@@ -145,22 +162,21 @@ def load_store(
     **kwargs
 ) -> Chroma:
     """
-    加载已有的 VectorStore
-    
-    用于加载之前创建的存储，不添加新文档。
-    
+    Load an existing VectorStore.
+
+    Use to load a previously created store without adding new documents.
+
     Args:
-        collection_name: 集合名称（必需）
-        embeddings: Embeddings 模型（必需，需与创建时一致）
-        persist_directory: 持久化目录
-        client: 自定义客户端
-        **kwargs: 其他配置参数
-    
+        collection_name: Collection name (required).
+        embeddings: Embeddings model (required; must match the one used at creation).
+        persist_directory: Persist directory.
+        client: Custom client.
+        **kwargs: Other configuration parameters.
+
     Returns:
-        LangChain Chroma VectorStore 实例
-    
+        LangChain Chroma VectorStore instance.
+
     Example:
-        >>> # 加载已有存储
         >>> store = load_store(
         ...     collection_name="ecommerce_docs",
         ...     embeddings=embeddings,
@@ -168,7 +184,7 @@ def load_store(
         ... )
     """
     return create_chroma_store(
-        documents=None,  # 不添加新文档
+        documents=None,
         embeddings=embeddings,
         collection_name=collection_name,
         persist_directory=persist_directory,
@@ -179,31 +195,27 @@ def load_store(
 
 class ChromaStore:
     """
-    Chroma VectorStore 高级封装类
-    
-    提供更灵活的控制和高级功能。
-    适合需要精细控制的场景。
-    
+    High-level Chroma VectorStore wrapper class.
+
+    Provides more flexible control and advanced features.
+    Suited for scenarios that need fine-grained control.
+
     Example:
         >>> from ai_toolkit.chroma import ChromaStore
-        >>> 
+        >>>
         >>> store = ChromaStore(
         ...     collection_name="docs",
         ...     embeddings=embeddings,
         ...     persist_directory="./data/chroma"
         ... )
-        >>> 
-        >>> # 批量添加
         >>> store.batch_add(documents=chunks, batch_size=100)
-        >>> 
-        >>> # 带过滤搜索
         >>> results = store.search_with_filter(
         ...     query="product",
         ...     filter={"platform": "amazon"},
         ...     k=5
         ... )
     """
-    
+
     def __init__(
         self,
         collection_name: str,
@@ -213,20 +225,19 @@ class ChromaStore:
         **kwargs
     ):
         """
-        初始化 ChromaStore
-        
+        Initialize ChromaStore.
+
         Args:
-            collection_name: 集合名称
-            embeddings: Embeddings 模型
-            persist_directory: 持久化目录
-            client: 自定义客户端
-            **kwargs: 其他配置参数
+            collection_name: Collection name.
+            embeddings: Embeddings model.
+            persist_directory: Persist directory.
+            client: Custom client.
+            **kwargs: Other configuration parameters.
         """
         self.collection_name = collection_name
         self.embeddings = embeddings
         self.persist_directory = persist_directory
-        
-        # 创建 VectorStore
+
         self.store = create_chroma_store(
             documents=None,
             embeddings=embeddings,
@@ -243,15 +254,15 @@ class ChromaStore:
         **kwargs
     ) -> List[str]:
         """
-        添加文档
-        
+        Add documents.
+
         Args:
-            documents: 文档列表
-            ids: 文档 ID 列表（可选，自动生成）
-            **kwargs: 其他参数
-        
+            documents: List of documents.
+            ids: List of document IDs (optional; auto-generated if not provided).
+            **kwargs: Other parameters.
+
         Returns:
-            文档 ID 列表
+            List of document IDs.
         """
         if ids is None:
             ids = generate_document_ids(len(documents))
@@ -270,16 +281,16 @@ class ChromaStore:
         **kwargs
     ) -> List[str]:
         """
-        批量添加文档（性能优化）
-        
+        Add documents in batches (performance optimization).
+
         Args:
-            documents: 文档列表
-            batch_size: 批次大小（默认: 100）
-            ids: 文档 ID 列表（可选）
-            **kwargs: 其他参数
-        
+            documents: List of documents.
+            batch_size: Batch size (default: 100).
+            ids: List of document IDs (optional).
+            **kwargs: Other parameters.
+
         Returns:
-            所有文档 ID 列表
+            List of all document IDs.
         """
         if ids is None:
             ids = generate_document_ids(len(documents))
@@ -304,15 +315,15 @@ class ChromaStore:
         **kwargs
     ) -> List[Document]:
         """
-        相似度搜索
-        
+        Similarity search.
+
         Args:
-            query: 查询文本
-            k: 返回文档数量
-            **kwargs: 其他参数
-        
+            query: Query text.
+            k: Number of documents to return.
+            **kwargs: Other parameters.
+
         Returns:
-            文档列表
+            List of documents.
         """
         return self.store.similarity_search(query=query, k=k, **kwargs)
     
@@ -323,15 +334,15 @@ class ChromaStore:
         **kwargs
     ) -> List[Tuple[Document, float]]:
         """
-        带相似度分数的搜索
-        
+        Similarity search with scores.
+
         Args:
-            query: 查询文本
-            k: 返回文档数量
-            **kwargs: 其他参数
-        
+            query: Query text.
+            k: Number of documents to return.
+            **kwargs: Other parameters.
+
         Returns:
-            (文档, 分数) 元组列表
+            List of (document, score) tuples.
         """
         return self.store.similarity_search_with_score(query=query, k=k, **kwargs)
     
@@ -343,19 +354,18 @@ class ChromaStore:
         **kwargs
     ) -> List[Document]:
         """
-        带元数据过滤的搜索
-        
+        Similarity search with metadata filter.
+
         Args:
-            query: 查询文本
-            filter: 元数据过滤条件（Chroma where 格式）
-            k: 返回文档数量
-            **kwargs: 其他参数
-        
+            query: Query text.
+            filter: Metadata filter (Chroma where format).
+            k: Number of documents to return.
+            **kwargs: Other parameters.
+
         Returns:
-            文档列表
-        
+            List of documents.
+
         Example:
-            >>> # 搜索特定平台的文档
             >>> results = store.search_with_filter(
             ...     query="return policy",
             ...     filter={"platform": "amazon"},
@@ -379,15 +389,15 @@ class ChromaStore:
         **kwargs
     ) -> None:
         """
-        删除文档
-        
+        Delete documents.
+
         Args:
-            ids: 文档 ID 列表（按 ID 删除）
-            filter: 元数据过滤条件（按过滤删除）
-            **kwargs: 其他参数
-        
+            ids: List of document IDs (delete by id).
+            filter: Metadata filter (delete by filter).
+            **kwargs: Other parameters.
+
         Note:
-            ids 和 filter 至少提供一个
+            At least one of ids or filter must be provided.
         """
         if ids:
             self.store.delete(ids=ids, **kwargs)
@@ -403,25 +413,24 @@ class ChromaStore:
         **kwargs
     ) -> None:
         """
-        更新文档
-        
+        Update documents.
+
         Args:
-            documents: 新文档内容
-            ids: 文档 ID 列表（需与 documents 长度一致）
-            **kwargs: 其他参数
+            documents: New document content.
+            ids: List of document IDs (must match length of documents).
+            **kwargs: Other parameters.
         """
         if len(documents) != len(ids):
             raise ValueError("documents and ids must have the same length")
-        
-        # Chroma 使用 upsert 更新
+
         self.store.add_documents(documents=documents, ids=ids, **kwargs)
     
     def get_stats(self) -> Dict[str, Any]:
         """
-        获取集合统计信息
-        
+        Get collection statistics.
+
         Returns:
-            统计信息字典
+            Dictionary of statistics.
         """
         collection = self.store._collection
         count = collection.count()
@@ -434,17 +443,16 @@ class ChromaStore:
     
     def clear(self) -> None:
         """
-        清空集合中的所有文档
+        Clear all documents in the collection.
         """
         collection = self.store._collection
-        # 获取所有 ID 并删除
         all_ids = collection.get()["ids"]
         if all_ids:
             collection.delete(ids=all_ids)
     
     def __getattr__(self, name):
         """
-        代理到底层 VectorStore 的所有方法
-        允许直接访问 LangChain Chroma 的所有功能
+        Delegate to the underlying VectorStore methods.
+        Allows direct access to all LangChain Chroma functionality.
         """
         return getattr(self.store, name)

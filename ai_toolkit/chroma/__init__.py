@@ -28,6 +28,7 @@ from .store import (
     create_chroma_store,
     from_documents,
     load_store,
+    get_chroma_collection,
     ChromaStore,
 )
 
@@ -38,6 +39,12 @@ from .utils import (
     validate_metadata,
     generate_document_ids,
     format_search_results,
+    collection_count,
+    get_collection_ids,
+    get_collection_items,
+    add_to_collection,
+    query_collection,
+    delete_from_collection,
 )
 
 __all__ = [
@@ -49,6 +56,7 @@ __all__ = [
     'create_chroma_store',
     'from_documents',
     'load_store',
+    'get_chroma_collection',
     'ChromaStore',
     # Utils
     'documents_to_chroma_format',
@@ -57,4 +65,11 @@ __all__ = [
     'validate_metadata',
     'generate_document_ids',
     'format_search_results',
+    # Collection common operations
+    'collection_count',
+    'get_collection_ids',
+    'get_collection_items',
+    'add_to_collection',
+    'query_collection',
+    'delete_from_collection',
 ]
