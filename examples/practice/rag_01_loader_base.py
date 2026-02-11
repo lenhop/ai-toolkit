@@ -237,10 +237,11 @@ def example_web_loader_webbase():
     
     # Create loader with BeautifulSoup selector
     # bs4_strainer = bs4.SoupStrainer(class_=("post-title", "post-header", "post-content"))
+    bs4_strainer = bs4.SoupStrainer(p_tag_selector)
     loader = WebBaseLoader(
         web_paths=["https://lilianweng.github.io/posts/2023-06-23-agent/"],
         bs_kwargs={
-            "parse_only": bs4.SoupStrainer(p_tag_selector)
+            "parse_only": bs4_strainer
         }
     )
     

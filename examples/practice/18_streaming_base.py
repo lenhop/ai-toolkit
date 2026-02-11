@@ -335,3 +335,48 @@ agent = create_agent(
     tools=[call_weather_agent],
     name="supervisor",  
 )
+
+
+def _render_message_chunk(token: AIMessageChunk) -> None:
+    if token.text:
+        print(token.text, end="|")
+    if token.tool_call_chunks:
+        print(token.tool_call_chunks)
+
+
+def _render_completed_message(message: AnyMessage) -> None:
+    if isinstance(message, AIMessage) and message.tool_calls:
+        print(f"Tool calls: {message.tool_calls}")
+    if isinstance(message, ToolMessage):
+        print(f"Tool response: {message.content_blocks}")
+
+
+input_message = {"role": "user", "content": "What is the weather in Boston?"}
+current_agent = None
+for _, stream_mode, data in agent.stream(
+    {"messages": [input_message]},
+    stream_mode=["messages", "updates"],
+    subgraphs=True,  
+):
+    if stream_mode == "messages":
+        token, metadata = data
+        if agent_name := metadata.get("lc_agent_name"):  
+            if agent_name != current_agent:  
+                print(f"🤖 {agent_name}: ")  
+                current_agent = agent_name  
+        if isinstance(token, AIMessage):
+            _render_message_chunk(token)
+    if stream_mode == "updates":
+        for source, update in data.items():
+            if source in ("model", "tools"):
+                _render_completed_message(update["messages"][-1])
+
+
+# 5.4 Disable streaming
+from langchain_openai import ChatOpenAI
+
+model = ChatOpenAI(
+    model="gpt-4o",
+    streaming=False
+)
+

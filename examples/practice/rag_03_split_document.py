@@ -18,6 +18,7 @@ print(f"✓ Total characters: {len(docs[0].page_content)}")
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000,
     chunk_overlap=200,
+    add_start_index=True,  # track index in original document
 )
 
 all_splits = splitter.split_documents(docs)
